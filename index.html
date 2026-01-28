@@ -24,13 +24,13 @@
         .timeline-labels { display: flex; justify-content: space-between; color: #666; font-size: 11px; margin-bottom: 5px; font-family: monospace; }
         .timeline-box { width: 100%; height: 50px; background: #111; border-radius: 8px; position: relative; overflow: hidden; border: 1px solid #333; }
         
-        .worker-block { position: absolute; height: 100%; top: 0; border-left: 2px solid rgba(255,255,255,0.2); border-right: 2px solid rgba(255,255,255,0.2); box-sizing: border-box; }
-        .worker-fill { position: absolute; left: 0; top: 0; height: 100%; opacity: 0.3; transition: width 0.3s; }
+        .worker-block { position: absolute; height: 100%; top: 0; border-left: 1px solid rgba(255,255,255,0.1); border-right: 1px solid rgba(255,255,255,0.1); box-sizing: border-box; }
+        .worker-fill { position: absolute; left: 0; top: 0; height: 100%; opacity: 0.4; transition: width 0.3s; }
         .worker-label-min { position: absolute; width:100%; text-align:center; top: 18px; font-size: 10px; font-weight: bold; color: #fff; text-shadow: 1px 1px 2px #000; z-index: 2; pointer-events: none; overflow: hidden; white-space: nowrap; }
 
         .worker-row { 
             display: grid; 
-            grid-template-columns: 1.2fr 0.8fr 0.8fr 1fr 1.5fr 1.2fr 0.5fr; 
+            grid-template-columns: 1.2fr 0.8fr 0.8fr 1fr 1.5fr 1.2fr; 
             gap: 15px; background: var(--shot-bg); padding: 15px; margin-bottom: 12px; 
             border-radius: 12px; align-items: center; border-left: 5px solid;
         }
@@ -43,10 +43,7 @@
         .eta-time { color: var(--eta-color); font-weight: bold; font-size: 15px; font-family: monospace; display: block; }
         .prog-percent { color: var(--accent); font-weight: bold; font-size: 13px; }
 
-        .shot-eta-box { background: rgba(241, 250, 140, 0.1); padding: 10px 20px; border-radius: 10px; border: 1px dashed var(--eta-color); }
-
-        button { cursor: pointer; border: none; border-radius: 8px; font-weight: bold; padding: 10px 15px; text-transform: uppercase; transition: 0.2s; }
-        .btn-delete { background: var(--delete); color: white; font-size: 10px; }
+        .status-badge { font-size: 10px; color: var(--accent); font-weight: bold; display: flex; align-items: center; gap: 5px; }
     </style>
 </head>
 <body>
@@ -58,8 +55,8 @@
     </div>
 
     <div style="margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center;">
-        <p style="color: var(--accent); font-size: 12px;">🛰️ Status: Live Syncing from Firebase</p>
-        <button style="background:transparent; color:#444; text-decoration: underline; font-size: 11px;" onclick="clearDatabase()">Clear Firebase Data</button>
+        <div class="status-badge">🛰️ Live Syncing from Firebase</div>
+        <button style="background:transparent; color:#444; text-decoration: underline; font-size: 11px; cursor: pointer; border: none;" onclick="window.clearFirebase()">Clear Database</button>
     </div>
 
     <div id="shotList"></div>
@@ -69,102 +66,91 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
     import { getDatabase, ref, onValue, remove } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
-    // --- CẤU HÌNH FIREBASE CỦA BẠN ---
+    // --- CẤU HÌNH FIREBASE ---
     const firebaseConfig = {
-        databaseURL: "https://vfx-machine-tracker-default-rtdb.asia-southeast1.firebasedatabase.app" // Thay bằng URL của bạn
+        databaseURL: "https://vfx-machine-tracker-default-rtdb.asia-southeast1.firebasedatabase.app"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     const colors = ['#ff79c6', '#8be9fd', '#50fa7b', '#f1fa8c', '#bd93f9', '#ffb86c'];
 
-    function formatTime(str) { return str || "--:--:--"; }
+    // Lắng nghe dữ liệu
+    onValue(ref(db, 'renders'), (snapshot) => {
+        const data = snapshot.val();
+        renderUI(data);
+    });
 
-    // Hàm xóa Database (Dành cho nút Clear All)
-    window.clearDatabase = () => {
-        if(confirm("Xóa toàn bộ dữ liệu trên Firebase?")) {
+    window.clearFirebase = () => {
+        if(confirm("Xóa toàn bộ dữ liệu render trên Firebase?")) {
             remove(ref(db, 'renders'));
         }
     };
 
-    // LẮNG NGHE DỮ LIỆU TỪ FIREBASE
-    const renderRef = ref(db, 'renders');
-    onValue(renderRef, (snapshot) => {
-        const data = snapshot.val();
-        renderAll(data);
-    });
-
-    function renderAll(data) {
+    function renderUI(data) {
         const list = document.getElementById('shotList');
         list.innerHTML = '';
         if (!data) return;
 
-        // Nhóm dữ liệu theo Shot Name (vì Firebase lưu phẳng các Worker)
+        // Nhóm theo Shot
         const shots = {};
         Object.keys(data).forEach((key, index) => {
             const w = data[key];
             if (!shots[w.shotName]) {
                 shots[w.shotName] = {
                     name: w.shotName,
-                    start: w.startFrame,
-                    end: w.endFrame,
+                    gStart: w.globalStart,
+                    gEnd: w.globalEnd,
                     workers: []
                 };
             }
-            shots[w.shotName].workers.push({
-                ...w,
-                color: colors[index % colors.length]
-            });
+            shots[w.shotName].workers.push({ ...w, color: colors[index % colors.length] });
         });
 
-        // Vẽ giao diện
         Object.values(shots).forEach(shot => {
-            let totalShotETA_Sec = 0; 
-            
-            const workersHtml = shot.workers.map(w => {
-                return `
+            const workersHtml = shot.workers.map(w => `
                 <div class="worker-row" style="border-left-color:${w.color}">
                     <div class="input-group"><label>Worker Name</label><input type="text" value="${w.workerName}" readonly></div>
-                    <div class="input-group"><label>Start Frame</label><input type="number" value="${w.startFrame}" readonly></div>
-                    <div class="input-group"><label>End Frame</label><input type="number" value="${w.endFrame}" readonly></div>
+                    <div class="input-group"><label>Start Frame (ROP)</label><input type="number" value="${w.startFrame}" readonly></div>
+                    <div class="input-group"><label>End Frame (ROP)</label><input type="number" value="${w.endFrame}" readonly></div>
                     <div class="input-group"><label>Current Frame</label><input type="number" value="${w.currentFrame}" style="border: 1px solid var(--accent)" readonly></div>
-                    <div class="input-group"><label>Node ($OS)</label><input type="text" value="${w.nodeOS || 'N/A'}" readonly></div>
+                    <div class="input-group"><label>Node ($OS)</label><input type="text" value="${w.nodeOS}" readonly></div>
                     <div class="eta-display">
                         <span class="eta-time">${w.eta}</span>
                         <span class="prog-percent">${w.progress}%</span>
                     </div>
-                    <div style="font-size: 10px; color: #444">Live</div>
-                </div>`;
-            }).join('');
+                </div>
+            `).join('');
 
             const shotEl = document.createElement('div');
             shotEl.className = 'shot-container';
             shotEl.innerHTML = `
                 <div class="shot-header">
                     <div class="input-group"><label>Shot Name</label><input type="text" style="color:var(--accent); font-weight:bold; font-size:18px" value="${shot.name}" readonly></div>
-                    <div class="input-group"><label>Global Start</label><input type="number" style="width:100px" value="${shot.start}" readonly></div>
-                    <div class="input-group"><label>Global End</label><input type="number" style="width:100px" value="${shot.end}" readonly></div>
-                    <div class="shot-eta-box">
-                        <label style="color:var(--eta-color); font-size:9px">TRACKING STATUS</label>
-                        <div style="color:var(--eta-color); font-weight:bold; font-size:16px;">ACTIVE</div>
+                    <div class="input-group"><label>Global Start</label><input type="number" style="width:100px" value="${shot.gStart}" readonly></div>
+                    <div class="input-group"><label>Global End</label><input type="number" style="width:100px" value="${shot.gEnd}" readonly></div>
+                    <div style="flex-grow: 1; text-align: right;">
+                        <span style="color: var(--accent); font-size: 11px; font-weight: bold;">STATUS: ACTIVE</span>
                     </div>
                 </div>
                 <div class="timeline-wrapper">
-                    <div class="timeline-labels"><span>${shot.start}</span><span>SHOT TIMELINE</span><span>${shot.end}</span></div>
+                    <div class="timeline-labels"><span>${shot.gStart}</span><span>GLOBAL TIMELINE</span><span>${shot.gEnd}</span></div>
                     <div class="timeline-box">
                         ${shot.workers.map(w => {
-                            const totalFrames = shot.end - shot.start;
-                            const offset = ((w.startFrame - shot.start) / totalFrames) * 100;
-                            const width = ((w.endFrame - w.startFrame) / totalFrames) * 100;
+                            const totalGlobal = shot.gEnd - shot.gStart;
+                            const offset = ((w.startFrame - shot.gStart) / totalGlobal) * 100;
+                            const width = ((w.endFrame - w.startFrame) / totalGlobal) * 100;
                             return `
-                            <div class="worker-block" style="left:${offset}%; width:${width}%; background: rgba(255,255,255,0.05);">
-                                <div class="worker-fill" style="width:${w.progress}%; background-color:${w.color}; opacity:0.5"></div>
-                                <div class="worker-label-min">${w.workerName}</div>
-                            </div>`;
+                                <div class="worker-block" style="left:${offset}%; width:${width}%; background: rgba(255,255,255,0.05);">
+                                    <div class="worker-fill" style="width:${w.progress}%; background-color:${w.color};"></div>
+                                    <div class="worker-label-min">${w.workerName}</div>
+                                </div>
+                            `;
                         }).join('')}
                     </div>
                 </div>
-                <div>${workersHtml}</div>`;
+                <div>${workersHtml}</div>
+            `;
             list.appendChild(shotEl);
         });
     }
