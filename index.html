@@ -10,8 +10,8 @@
             --sync: #bd93f9; --eta-color: #f1fa8c;
         }
         
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); color: var(--text); padding: 30px; margin: 0; }
-        .container { max-width: 1550px; margin: 0 auto; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); color: var(--text); padding: 30px; margin: 0; display: flex; flex-direction: column; min-height: 100vh; }
+        .container { max-width: 1550px; margin: 0 auto; flex: 1; width: 100%; }
         
         /* Main Header */
         .main-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; background: var(--card); padding: 20px 40px; border-radius: 16px; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
@@ -48,6 +48,18 @@
 
         .status-badge { color: var(--accent); font-size: 12px; font-weight: bold; display: flex; align-items: center; gap: 8px; }
         button { cursor: pointer; border: none; border-radius: 8px; font-weight: bold; padding: 10px 15px; text-transform: uppercase; transition: 0.2s; }
+
+        /* Copyright Footer */
+        .footer {
+            text-align: center;
+            padding: 40px 20px;
+            color: #555;
+            font-size: 12px;
+            letter-spacing: 1px;
+            border-top: 1px solid #1e1e1e;
+            margin-top: 50px;
+        }
+        .footer b { color: var(--accent); }
     </style>
 </head>
 <body>
@@ -66,11 +78,15 @@
     <div id="shotList"></div>
 </div>
 
+<div class="footer">
+    &copy; 2026 <b>JamesDo ZodiacII</b>. All Rights Reserved. <br>
+    Custom VFX Pipeline Tool for Houdini & Redshift.
+</div>
+
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
     import { getDatabase, ref, onValue, remove } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
-    // --- CẤU HÌNH FIREBASE ---
     const firebaseConfig = {
         databaseURL: "https://vfx-machine-tracker-default-rtdb.asia-southeast1.firebasedatabase.app"
     };
@@ -79,14 +95,12 @@
     const db = getDatabase(app);
     const colors = ['#ff79c6', '#8be9fd', '#50fa7b', '#f1fa8c', '#bd93f9', '#ffb86c'];
 
-    // Hàm Clear Data
     window.clearDatabase = () => {
         if(confirm("Xóa toàn bộ dữ liệu trên Firebase?")) {
             remove(ref(db, 'renders'));
         }
     };
 
-    // Lắng nghe dữ liệu Real-time
     const renderRef = ref(db, 'renders');
     onValue(renderRef, (snapshot) => {
         const data = snapshot.val();
@@ -98,7 +112,6 @@
         list.innerHTML = '';
         if (!data) return;
 
-        // Nhóm theo Shot (Shot Name lúc này là tên Node từ Houdini gửi lên)
         const shots = {};
         Object.keys(data).forEach((key, index) => {
             const w = data[key];
@@ -116,9 +129,7 @@
             });
         });
 
-        // Vẽ giao diện
         Object.values(shots).forEach(shot => {
-            // ĐOẠN RENDER HÀNG WORKER THEO YÊU CẦU CỦA BẠN
             const workersHtml = shot.workers.map(w => `
                 <div class="worker-row" style="border-left-color:${w.color}">
                     <div class="input-group"><label>Worker Name</label><input type="text" value="${w.workerName}" readonly></div>
