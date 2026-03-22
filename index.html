@@ -1,181 +1,358 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <title>VFX Machine Render Tracker - JamesDo ZodiacII</title>
-    <style>
-        :root { 
-            --accent: #50fa7b; --bg: #121212; --card: #1e1e1e; --text: #e0e0e0; 
-            --shot-bg: #252525; --input-bg: #1a1a1a; --delete: #ff5555;
-            --sync: #bd93f9; --eta-color: #f1fa8c;
-        }
-        
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); color: var(--text); padding: 30px; margin: 0; display: flex; flex-direction: column; min-height: 100vh; }
-        .container { max-width: 1550px; margin: 0 auto; flex: 1; width: 100%; }
-        
-        /* Main Header */
-        .main-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; background: var(--card); padding: 20px 40px; border-radius: 16px; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        h1 { color: var(--accent); margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 2px; }
-        .author-name { color: var(--accent); font-weight: bold; }
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VFX Machine Render Tracker</title>
+    <!-- Modern Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Outfit:wght@400;700;900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
 
-        .shot-container { background: var(--card); border-radius: 24px; padding: 30px; margin-bottom: 50px; border: 1px solid #333; position: relative; }
-        .shot-header { display: flex; flex-wrap: wrap; gap: 25px; align-items: flex-end; margin-bottom: 25px; }
-        
-        /* Timeline */
-        .timeline-wrapper { position: relative; margin-bottom: 40px; }
-        .timeline-labels { display: flex; justify-content: space-between; color: #666; font-size: 11px; margin-bottom: 5px; font-family: monospace; }
-        .timeline-box { width: 100%; height: 50px; background: #111; border-radius: 8px; position: relative; overflow: hidden; border: 1px solid #333; }
-        
-        .worker-block { position: absolute; height: 100%; top: 0; border-left: 2px solid rgba(255,255,255,0.1); border-right: 2px solid rgba(255,255,255,0.1); box-sizing: border-box; }
-        .worker-fill { position: absolute; left: 0; top: 0; height: 100%; opacity: 0.4; transition: width 0.3s; }
-        .worker-label-min { position: absolute; width:100%; text-align:center; top: 18px; font-size: 10px; font-weight: bold; color: #fff; text-shadow: 1px 1px 2px #000; z-index: 2; pointer-events: none; overflow: hidden; white-space: nowrap; }
-
-        /* Worker Row Grid */
-        .worker-row { 
-            display: grid; 
-            grid-template-columns: 1.2fr 0.8fr 0.8fr 1fr 1.5fr 1.2fr; 
-            gap: 15px; background: var(--shot-bg); padding: 15px; margin-bottom: 12px; 
-            border-radius: 12px; align-items: center; border-left: 5px solid;
-        }
-
-        .input-group { display: flex; flex-direction: column; gap: 5px; }
-        .input-group label { font-size: 9px; color: #777; text-transform: uppercase; font-weight: bold; }
-        input { background: var(--input-bg); border: 1px solid #333; color: #fff; padding: 10px; border-radius: 6px; font-size: 14px; width: 100%; box-sizing: border-box; }
-
-        .eta-display { text-align: center; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; border: 1px solid #333; }
-        .eta-time { color: var(--eta-color); font-weight: bold; font-size: 15px; font-family: monospace; display: block; }
-        .prog-percent { color: var(--accent); font-weight: bold; font-size: 13px; }
-
-        .status-badge { color: var(--accent); font-size: 12px; font-weight: bold; display: flex; align-items: center; gap: 8px; }
-        button { cursor: pointer; border: none; border-radius: 8px; font-weight: bold; padding: 10px 15px; text-transform: uppercase; transition: 0.2s; }
-
-        /* Copyright Footer */
-        .footer {
-            text-align: center;
-            padding: 40px 20px;
-            color: #555;
-            font-size: 12px;
-            letter-spacing: 1px;
-            border-top: 1px solid #1e1e1e;
-            margin-top: 50px;
-        }
-        .footer b { color: var(--accent); }
-    </style>
+    <script>
+        // ==========================================
+        // CONFIGURATION: SET YOUR FIREBASE URL HERE
+        // ==========================================
+        const FIREBASE_DATABASE_URL = "https://vfx-machine-tracker-default-rtdb.asia-southeast1.firebasedatabase.app/";
+    </script>
 </head>
+
 <body>
 
-<div class="container">
-    <div class="main-header">
-        <h1>VFX Render Machine Tracker</h1>
-        <div class="author-info"><span class="author-name">JamesDo ZodiacII</span></div>
+    <div class="container">
+        <div class="main-header">
+            <h1>RENDER<span>TRACKER</span></h1>
+            <div class="header-actions">
+                <button class="btn-tool" onclick="toggleSplitter()">
+                    <svg viewBox="0 0 24 24">
+                        <path
+                            d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z" />
+                    </svg>
+                    Splitter Tool
+                </button>
+            </div>
+        </div>
+
+        <div id="renderSplitter" class="splitter-panel">
+            <div style="margin-bottom: 25px; border-bottom: 1px solid var(--glass-border); padding-bottom: 15px;">
+                <h3 style="font-family:'Outfit'; color:#fff; font-size:16px; margin-bottom:5px">Render Range Splitter
+                </h3>
+                <p style="font-size:12px; color:var(--text-secondary); opacity:0.7">Công cụ hỗ trợ phân chia Render Job
+                    cho nhiều máy khác nhau.</p>
+            </div>
+            <div class="splitter-grid">
+                <div class="input-card">
+                    <label>Number of Machines</label>
+                    <div class="input-desc">Tổng số máy render đang có</div>
+                    <input type="number" id="splitMachines" value="4" min="1">
+                </div>
+                <div class="input-card">
+                    <label>Start Frame</label>
+                    <div class="input-desc">Frame bắt đầu (v.d: 1, 1001)</div>
+                    <input type="number" id="splitStart" value="1001">
+                </div>
+                <div class="input-card">
+                    <label>End Frame</label>
+                    <div class="input-desc">Frame kết thúc (v.d: 240)</div>
+                    <input type="number" id="splitEnd" value="1200">
+                </div>
+                <div class="input-card">
+                    <label>Secs per Frame</label>
+                    <div class="input-desc">Thời gian render 1 frame (giây)</div>
+                    <input type="number" id="splitSeconds" value="60" min="1">
+                </div>
+            </div>
+            <div id="splitterResults" class="results-area">
+                <!-- Results will appear here -->
+            </div>
+        </div>
+
+        <div class="sync-bar">
+            <div class="status-badge"><span class="pulse-icon"></span> 🛰️ LIVE SYNC: ON</div>
+            <button class="btn-clear" onclick="clearDatabase()">Clear Firebase Data</button>
+        </div>
+
+        <div id="shotList">
+            <!-- Dashboard Content -->
+        </div>
     </div>
 
-    <div style="margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center;">
-        <div class="status-badge">🛰️ LIVE SYNC: ON</div>
-        <button style="background:transparent; color:#444; text-decoration: underline; font-size: 11px;" onclick="clearDatabase()">Clear Firebase Data</button>
+    <div class="footer">
+        &copy; 2026 <b>Render Tracker</b> &bullet; All Rights Reserved. <br>
+        <span style="opacity:0.6; font-size:11px; margin-top:10px; display:block">
+            Custom VFX Pipeline Tool for Houdini & Redshift. <br>
+            Disclaimer: Developed and maintained by <a href="https://jamesdo-vfx.github.io/JamesDo-Portfolio/"
+                target="_blank" class="footer-link">JamesDo</a>.
+            Powered by Antigravity.
+        </span>
     </div>
 
-    <div id="shotList"></div>
-</div>
+    <div id="copyToast">Copied to clipboard!</div>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getDatabase, ref, onValue, remove } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
-<div class="footer">
-    &copy; 2026 <b>JamesDo ZodiacII</b>. All Rights Reserved. <br>
-    Custom VFX Pipeline Tool for Houdini & Redshift.
-</div>
+        const firebaseConfig = {
+            databaseURL: FIREBASE_DATABASE_URL
+        };
 
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-    import { getDatabase, ref, onValue, remove } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const colors = ['#ff79c6', '#8be9fd', '#50fa7b', '#f1fa8c', '#bd93f9', '#ffb86c', '#ff5555', '#4eecec'];
 
-    const firebaseConfig = {
-        databaseURL: "https://vfx-machine-tracker-default-rtdb.asia-southeast1.firebasedatabase.app"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-    const colors = ['#ff79c6', '#8be9fd', '#50fa7b', '#f1fa8c', '#bd93f9', '#ffb86c'];
-
-    window.clearDatabase = () => {
-        if(confirm("Xóa toàn bộ dữ liệu trên Firebase?")) {
-            remove(ref(db, 'renders'));
-        }
-    };
-
-    const renderRef = ref(db, 'renders');
-    onValue(renderRef, (snapshot) => {
-        const data = snapshot.val();
-        renderUI(data);
-    });
-
-    function renderUI(data) {
-        const list = document.getElementById('shotList');
-        list.innerHTML = '';
-        if (!data) return;
-
-        const shots = {};
-        Object.keys(data).forEach((key, index) => {
-            const w = data[key];
-            if (!shots[w.shotName]) {
-                shots[w.shotName] = {
-                    name: w.shotName,
-                    gStart: w.globalStart,
-                    gEnd: w.globalEnd,
-                    workers: []
-                };
+        window.clearDatabase = () => {
+            if (confirm("Xóa toàn bộ dữ liệu trên Firebase?")) {
+                remove(ref(db, 'renders'));
             }
-            shots[w.shotName].workers.push({
-                ...w,
-                color: colors[index % colors.length]
+        };
+
+        window.copyToClipboard = (text) => {
+            if (!text || text === "N/A") {
+                alert("Không có đường dẫn để copy!");
+                return;
+            }
+            navigator.clipboard.writeText(text).then(() => {
+                showToast("Copied output directory!");
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
             });
+        };
+
+        function showToast(message) {
+            const toast = document.getElementById('copyToast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
+
+        const renderRef = ref(db, 'renders');
+        onValue(renderRef, (snapshot) => {
+            const data = snapshot.val();
+            renderUI(data);
         });
 
-        Object.values(shots).forEach(shot => {
-            const workersHtml = shot.workers.map(w => `
-                <div class="worker-row" style="border-left-color:${w.color}">
-                    <div class="input-group"><label>Worker Name</label><input type="text" value="${w.workerName}" readonly></div>
-                    <div class="input-group"><label>Start Frame (ROP)</label><input type="number" value="${w.startFrame}" readonly></div>
-                    <div class="input-group"><label>End Frame (ROP)</label><input type="number" value="${w.endFrame}" readonly></div>
-                    <div class="input-group"><label>Current Frame</label><input type="number" value="${w.currentFrame}" style="border: 1px solid var(--accent)" readonly></div>
-                    <div class="input-group"><label>Houdini File</label><input type="text" value="${w.hipFile}" readonly></div>
-                    <div class="eta-display">
-                        <span class="eta-time">${w.eta}</span>
-                        <span class="prog-percent">${w.progress}%</span>
+
+        // ==========================================
+        // RENDER SPLITTER TOOL LOGIC
+        // ==========================================
+        window.toggleSplitter = () => {
+            const panel = document.getElementById('renderSplitter');
+            panel.classList.toggle('show');
+            if (panel.classList.contains('show')) {
+                calculateSplit();
+            }
+        };
+
+        const splitInputs = ['splitMachines', 'splitStart', 'splitEnd', 'splitSeconds'];
+        splitInputs.forEach(id => {
+            document.getElementById(id).addEventListener('input', calculateSplit);
+        });
+
+        function formatDuration(seconds) {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = Math.floor(seconds % 60);
+            return `${h}h ${m}m ${s}s`;
+        }
+
+        function calculateSplit() {
+            const numMachines = parseInt(document.getElementById('splitMachines').value) || 1;
+            const start = parseInt(document.getElementById('splitStart').value) || 1;
+            const end = parseInt(document.getElementById('splitEnd').value) || 1;
+            const secPerFrame = parseInt(document.getElementById('splitSeconds').value) || 0;
+
+            const totalFrames = Math.max(0, end - start + 1);
+            const framesPerMachine = Math.floor(totalFrames / numMachines);
+            const remainder = totalFrames % numMachines;
+
+            let currentStart = start;
+            let html = '';
+
+            for (let i = 0; i < numMachines; i++) {
+                if (currentStart > end) break;
+
+                let mFrames = framesPerMachine + (i < remainder ? 1 : 0);
+                if (mFrames <= 0) continue;
+
+                let mEnd = currentStart + mFrames - 1;
+                let totalSecs = mFrames * secPerFrame;
+
+                html += `
+                    <div class="result-item" style="animation-delay: ${i * 0.05}s">
+                        <div class="m-id">MACHINE ${i + 1}</div>
+                        <div style="text-align: right">
+                            <div class="r-range">${currentStart} — ${mEnd}</div>
+                            <div class="r-time">(${mFrames} frames • ${formatDuration(totalSecs)})</div>
+                        </div>
+                    </div>
+                `;
+                currentStart = mEnd + 1;
+            }
+
+            if (totalFrames === 0) {
+                html = '<div style="color:var(--text-secondary); opacity:0.5; font-weight:700">Invalid range</div>';
+            }
+
+            document.getElementById('splitterResults').innerHTML = html;
+        }
+
+        function renderUI(data) {
+            const list = document.getElementById('shotList');
+            if (!data) {
+                list.innerHTML = `
+                <div style="text-align:center; padding:100px; color:var(--text-secondary); opacity:0.5; font-size:18px; font-weight:700">
+                    NO ACTIVE RENDERS FOUND
+                </div>
+            `;
+                return;
+            }
+
+            const shots = {};
+            Object.keys(data).forEach((key, index) => {
+                const w = data[key];
+                // Backward compatibility mapping
+                const shotName = w.shotName || w.project_name || "Unknown Shot";
+                const workerName = w.workerName || w.machine_name || key;
+                const startF = w.startFrame !== undefined ? w.startFrame : (w.frame_range ? parseInt(w.frame_range.split('-')[0]) : 0);
+                const endF = w.endFrame !== undefined ? w.endFrame : (w.frame_range ? parseInt(w.frame_range.split('-')[1]) : 0);
+                const currentF = w.currentFrame !== undefined ? w.currentFrame : (w.current_frame || 0);
+                const globalS = w.globalStart !== undefined ? w.globalStart : (w.global_range ? parseInt(w.global_range.split('-')[0]) : startF);
+                const globalE = w.globalEnd !== undefined ? w.globalEnd : (w.global_range ? parseInt(w.global_range.split('-')[1]) : endF);
+                const hipFile = w.hipFile || w.project_name || "render.hip";
+
+                // Progress Calculation if not provided
+                let progress = w.progress;
+                if (progress === undefined) {
+                    const total = endF - startF + 1 || 1;
+                    const done = Math.max(0, currentF - startF);
+                    progress = Math.min(100, Math.round((done / total) * 100)) || 0;
+                }
+                if (w.status === 'Finished') progress = 100;
+
+                if (!shots[shotName]) {
+                    shots[shotName] = {
+                        name: shotName,
+                        gStart: globalS,
+                        gEnd: globalE,
+                        workers: []
+                    };
+                }
+                shots[shotName].workers.push({
+                    ...w,
+                    workerName,
+                    startFrame: startF,
+                    endFrame: endF,
+                    currentFrame: currentF,
+                    hipFile,
+                    output_dir: w.output_dir || "N/A",
+                    progress,
+                    eta: w.eta || "CALCULATING...",
+                    color: colors[index % colors.length]
+                });
+            });
+
+            list.innerHTML = '';
+            Object.values(shots).forEach(shot => {
+                const workersHtml = shot.workers.map(w => `
+                <div class="worker-item-container">
+                    <div class="worker-row" style="border-left: 5px solid ${w.color}" onclick="this.parentElement.classList.toggle('expanded')">
+                        <div class="input-group">
+                            <label>Worker ID</label>
+                            <div class="value-display">${w.workerName}</div>
+                        </div>
+                        <div class="input-group">
+                            <label>Start (ROP)</label>
+                            <div class="value-display">${w.startFrame}</div>
+                        </div>
+                        <div class="input-group">
+                            <label>End (ROP)</label>
+                            <div class="value-display">${w.endFrame}</div>
+                        </div>
+                        <div class="input-group">
+                            <label>Current</label>
+                            <div class="value-display" style="border-color:${w.color}; color:${w.color}; text-shadow: 0 0 10px ${w.color}55;">${w.currentFrame}</div>
+                        </div>
+                        <div class="input-group">
+                            <label>Hip File / Node</label>
+                            <div class="value-display">
+                                <span style="font-family:monospace; font-size:12px; opacity:0.8; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${w.hipFile}</span>
+                                <div class="copy-icon-btn" title="Copy Output Folder" onclick="event.stopPropagation(); copyToClipboard('${w.output_dir || 'N/A'}')">
+                                    <svg viewBox="0 0 24 24"><path d="M16 1H4C2.9 1 2 1.9 2 3V17H4V3H16V1ZM19 5H8C6.9 5 6 5.9 6 7V21C6 22.1 6.9 23 8 23H19C20.1 23 21 22.1 21 21V7C21 5.9 20.1 5 19 5ZM19 21H8V7H19V21Z"/></svg>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="eta-display">
+                            <span class="eta-time">${w.eta}</span>
+                            <span class="prog-percent" style="color:${w.color}">${w.progress}%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="worker-details">
+                        <div class="code-console">
+                            <div class="console-header">
+                                <div class="console-dots">
+                                    <span class="dot red"></span>
+                                    <span class="dot yellow"></span>
+                                    <span class="dot green"></span>
+                                </div>
+                                <div class="console-title">${w.workerName}_specs.json</div>
+                            </div>
+                            <div class="console-body">
+                                <div class="code-line"><span class="c-key">"cpu_model"</span>: <span class="c-string">"${w.cpu || 'Unknown'}"</span>,</div>
+                                <div class="code-line"><span class="c-key">"gpu_graphics"</span>: <span class="c-string">"${w.gpu || 'Unknown'}"</span>,</div>
+                                <div class="code-line"><span class="c-key">"total_ram"</span>: <span class="c-string">"${w.ram || 'Unknown'}"</span>,</div>
+                                <div class="code-line"><span class="c-key">"node_path"</span>: <span class="c-string">"${w.hipFile}"</span></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            `).join('');
+                `).join('');
 
-            const shotEl = document.createElement('div');
-            shotEl.className = 'shot-container';
-            shotEl.innerHTML = `
+                const shotEl = document.createElement('div');
+                shotEl.className = 'shot-container';
+                shotEl.innerHTML = `
                 <div class="shot-header">
-                    <div class="input-group"><label>Node Render ($OS)</label><input type="text" style="color:var(--accent); font-weight:bold; font-size:18px" value="${shot.name}" readonly></div>
-                    <div class="input-group"><label>Global Start</label><input type="number" style="width:100px" value="${shot.gStart}" readonly></div>
-                    <div class="input-group"><label>Global End</label><input type="number" style="width:100px" value="${shot.gEnd}" readonly></div>
-                    <div style="flex-grow:1; text-align:right">
-                        <span style="color:var(--accent); font-size:11px; font-weight:bold">STATUS: ACTIVE</span>
+                    <div class="input-group" style="flex:2">
+                        <label>Active Shot ($OS)</label>
+                        <div class="shot-title">${shot.name}</div>
+                    </div>
+                    <div class="input-group playbar-group">
+                        <label>Global Playbar</label>
+                        <div class="global-range">${shot.gStart} &mdash; ${shot.gEnd}</div>
                     </div>
                 </div>
                 <div class="timeline-wrapper">
-                    <div class="timeline-labels"><span>${shot.gStart}</span><span>GLOBAL TIMELINE (PLAYBAR)</span><span>${shot.gEnd}</span></div>
+                    <div class="timeline-labels">
+                        <span>${shot.gStart}</span>
+                        <span style="opacity:0.4">GLOBAL TIMELINE PROGRESS</span>
+                        <span>${shot.gEnd}</span>
+                    </div>
                     <div class="timeline-box">
                         ${shot.workers.map(w => {
-                            const totalGlobal = shot.gEnd - shot.gStart;
-                            const offset = ((w.startFrame - shot.gStart) / totalGlobal) * 100;
-                            const width = ((w.endFrame - w.startFrame) / totalGlobal) * 100;
-                            return `
-                                <div class="worker-block" style="left:${offset}%; width:${width}%; background: rgba(255,255,255,0.05);">
-                                    <div class="worker-fill" style="width:${w.progress}%; background-color:${w.color};"></div>
+                    const totalGlobal = shot.gEnd - shot.gStart + 1 || 1;
+                    const offset = ((w.startFrame - shot.gStart) / totalGlobal) * 100;
+                    const width = ((w.endFrame - w.startFrame + 1) / totalGlobal) * 100;
+                    return `
+                                <div class="worker-block" style="left:${offset}%; width:${width}%;">
+                                    <div class="worker-fill" style="width:${w.progress}%; background-color:${w.color}; box-shadow: 0 0 15px ${w.color}66;"></div>
                                     <div class="worker-label-min">${w.workerName}</div>
                                 </div>
                             `;
-                        }).join('')}
+                }).join('')}
                     </div>
                 </div>
-                <div>${workersHtml}</div>
+                <div class="worker-grid">${workersHtml}</div>
             `;
-            list.appendChild(shotEl);
-        });
-    }
-</script>
+                list.appendChild(shotEl);
+            });
+        }
+    </script>
 </body>
+
 </html>
