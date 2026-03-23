@@ -11,7 +11,7 @@ import math
 import json
 import datetime
 
-FIREBASE_URL = "https://rendermanager-c9298-default-rtdb.asia-southeast1.firebasedatabase.app"
+FIREBASE_URL = "https://vfx-machine-tracker-default-rtdb.asia-southeast1.firebasedatabase.app/"
 
 def format_time(seconds):
     """Định dạng giây thành chuỗi thời gian dễ đọc"""
