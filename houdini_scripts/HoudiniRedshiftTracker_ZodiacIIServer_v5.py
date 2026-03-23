@@ -144,7 +144,7 @@ def main_sync():
                 print(GITHUB_WEBSITE_URL) # In dòng riêng để Console dễ nhận diện link
                 # Tùy chọn: Tự động mở web khi render bắt đầu (Xóa dấu # ở dưới nêú muốn)
                 # webbrowser.open(GITHUB_WEBSITE_URL)
-            print(f">>> [TRACKER] Machine: {host_name} | Node: {os_name}")
+            print(f">>> [TRACKER] File: {hip_name} | Node: {os_name} | Machine: {host_name}")
             print(f">>> [TRACKER] Range: {rop_start} -> {rop_end} (Total: {rop_end - rop_start + 1} frames)")
 
         job_info['last_frame_time'] = current_time
@@ -236,9 +236,17 @@ def main_sync():
         eta_str = "DONE"
 
     # Cập nhật thông tin đọc được cho con người (Readable)
-    job_info['start_time_readable'] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(job_info['start_time']))
-    job_info['last_frame_time_readable'] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(job_info['last_frame_time']))
-    job_info['total_render_time_readable'] = format_time(job_info.get('total_render_time', 0))
+    # Gán lại các giá trị quan trọng để chúng xuất hiện ở đầu file JSON (Python 3.7+ preserves order)
+    new_info = {
+        "hip_file": hip_name,
+        "rop_name": os_name,
+        "total_render_time_readable": format_time(job_info.get('total_render_time', 0)),
+        "start_time_readable": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(job_info.get('start_time', current_time))),
+        "last_frame_time_readable": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(job_info.get('last_frame_time', current_time)))
+    }
+    # Gộp các thông tin cũ vào sau các thông tin quan trọng
+    new_info.update(job_info)
+    job_info = new_info
 
     def save_logs():
         all_jobs_data[render_key] = job_info
