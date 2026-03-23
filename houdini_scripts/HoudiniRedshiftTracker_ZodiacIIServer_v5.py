@@ -7,15 +7,12 @@ import os
 import subprocess
 import webbrowser
 
-# URL Trang web quản lý render (Clickable in Console)
+# --- CẤU HÌNH HỆ THỐNG (Được cập nhật bởi setup_config.bat) ---
+# Không đọc trực tiếp từ config.json để file script có thể hoạt động độc lập khi copy sang máy khác.
+WEBHOOK_URL        = "https://discord.com/api/webhooks/1466637236928909525/EE0ZjOqOx172NmLjJ94ryT-qvtwwGYxbQL62Yxr72D7URhtnPoEaGh8IQfwDMU2LSmoB"
+FIREBASE_URL       = "https://vfx-machine-tracker-default-rtdb.asia-southeast1.firebasedatabase.app/renders.json"
 GITHUB_WEBSITE_URL = "https://jamesdo-vfx.github.io/VFX-RENDER-TRACKER-Sycn/"
-
-# --- CẤU HÌNH HỆ THỐNG ---
-# Webhook Discord để nhận thông báo trực tiếp
-WEBHOOK_URL = "https://discord.com/api/webhooks/1466637236928909525/EE0ZjOqOx172NmLjJ94ryT-qvtwwGYxbQL62Yxr72D7URhtnPoEaGh8IQfwDMU2LSmoB"
-
-# URL Firebase Realtime Database (Mới nhất)
-FIREBASE_URL = "https://vfx-machine-tracker-default-rtdb.asia-southeast1.firebasedatabase.app/renders.json"
+UPDATE_INTERVAL    = 30
 
 def get_system_specs():
     """Lấy thông tin CPU, GPU và RAM sử dụng PowerShell (Thay thế wmic bị lỗi trên Win11)"""
@@ -56,8 +53,7 @@ def get_system_specs():
         
     return specs
 
-# Tần suất cập nhật Discord (giây) - Tránh spam
-UPDATE_INTERVAL = 30 
+# (Already defined above)
 
 def format_time(seconds):
     """Định dạng giây thành chuỗi thời gian dễ đọc"""
@@ -108,9 +104,15 @@ def main_sync():
     except: pass
 
     # --- HỆ THỐNG LƯU TRỮ PHIÊN BẢN (PERSISTENCE) ---
-    # Thay vì hou.session (gián đoạn khi tắt Houdini), ta dùng file log ở $HIP
+    # Thay vì hou.session (gián đoạn khi tắt Houdini), ta dùng file log ở $HIP/render
     hip_dir = hou.expandString("$HIP")
-    log_file = os.path.join(hip_dir, ".render_tracker_logs.json")
+    render_dir = os.path.join(hip_dir, "render")
+    if not os.path.exists(render_dir):
+        try:
+            os.makedirs(render_dir)
+        except OSError:
+            pass
+    log_file = os.path.join(render_dir, ".render_tracker_logs.json")
     all_jobs_data = {}
     
     if os.path.exists(log_file):
