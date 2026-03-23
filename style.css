@@ -840,6 +840,12 @@ h1 span {
     overflow: hidden;
     text-overflow: ellipsis;
     min-width: 0;
+    transition: all 0.3s ease;
+}
+
+.shot-title.cache-mode {
+    color: var(--sync); /* Purple for Cache */
+    text-shadow: 0 0 15px rgba(189, 147, 249, 0.4);
 }
 
 .global-range {
