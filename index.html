@@ -23,19 +23,24 @@
 
 <body>
 
-    <div class="container">
-        <div class="main-header">
+    <div class="main-header">
+        <div class="header-inner">
             <h1>RENDER<span>TRACKER</span></h1>
             <div class="header-actions">
                 <button class="btn-tool" onclick="toggleSplitter()">
-                    <svg viewBox="0 0 24 24">
-                        <path
-                            d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z" />
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round">
+                        <line x1="4" y1="6" x2="20" y2="6"></line>
+                        <line x1="4" y1="12" x2="20" y2="12"></line>
+                        <line x1="4" y1="18" x2="20" y2="18"></line>
                     </svg>
-                    Splitter Tool
+                    <span>Splitter Tool</span>
                 </button>
             </div>
         </div>
+    </div>
+
+    <div class="container">
 
         <div id="renderSplitter" class="splitter-panel">
             <div style="margin-bottom: 25px; border-bottom: 1px solid var(--glass-border); padding-bottom: 15px;">
@@ -51,6 +56,11 @@
                     <input type="number" id="splitMachines" value="4" min="1">
                 </div>
                 <div class="input-card">
+                    <label>Secs per Frame</label>
+                    <div class="input-desc">Thời gian render 1 frame (giây)</div>
+                    <input type="number" id="splitSeconds" value="60" min="1">
+                </div>
+                <div class="input-card">
                     <label>Start Frame</label>
                     <div class="input-desc">Frame bắt đầu (v.d: 1, 1001)</div>
                     <input type="number" id="splitStart" value="1001">
@@ -59,11 +69,6 @@
                     <label>End Frame</label>
                     <div class="input-desc">Frame kết thúc (v.d: 240)</div>
                     <input type="number" id="splitEnd" value="1200">
-                </div>
-                <div class="input-card">
-                    <label>Secs per Frame</label>
-                    <div class="input-desc">Thời gian render 1 frame (giây)</div>
-                    <input type="number" id="splitSeconds" value="60" min="1">
                 </div>
             </div>
             <div id="splitterResults" class="results-area">
