@@ -80,15 +80,35 @@ def main_sync():
     rop_node = hou.pwd()
     os_name = rop_node.name() # Tên node ROP ($OS)
     
+    # Tự động nhận diện loại node để đổi tên hiển thị (v.d: File Cache)
+    is_cache_job = False
+    try:
+        # Nếu là SOP node (trong Geo) hoặc chứa từ "cache" thì là cache job
+        category = rop_node.type().category().name()
+        type_name = rop_node.type().name().lower()
+        if category == "Sop" or "cache" in type_name or "cache" in rop_node.path().lower():
+            is_cache_job = True
+    except:
+        pass
+    
     # Lấy Frame Range từ Global Playbar
     g_range = hou.playbar.frameRange()
     g_start = int(g_range[0])
     g_end = int(g_range[1])
     
-    # Lấy Frame Range từ Node ROP đang chạy
-    r_range = rop_node.evalParmTuple("f") 
-    rop_start = int(r_range[0])
-    rop_end = int(r_range[1])
+    # Lấy Frame Range từ Node ROP hoặc SOP đang chạy
+    try:
+        if rop_node.parmTuple("f"):
+            r_range = rop_node.evalParmTuple("f") 
+            rop_start = int(r_range[0])
+            rop_end = int(r_range[1])
+        elif rop_node.parm("f1") and rop_node.parm("f2"):
+            rop_start = int(rop_node.evalParm("f1"))
+            rop_end = int(rop_node.evalParm("f2"))
+        else:
+            rop_start, rop_end = int(g_start), int(g_end)
+    except:
+        rop_start, rop_end = int(g_start), int(g_end)
     
     # Tạo key duy nhất cho bản ghi này trên Firebase (thay dấu '.' bằng '_')
     render_key = f"{host_name}_{os_name}".replace(".", "_")
@@ -97,11 +117,59 @@ def main_sync():
     output_path = "N/A"
     output_dir = "N/A"
     try:
-        raw_output = rop_node.evalParm("vm_picture") or rop_node.evalParm("picture") or "N/A"
-        if raw_output != "N/A":
-            output_path = hou.expandString(raw_output)
-            output_dir = os.path.dirname(output_path).replace("\\", "/")
-    except: pass
+        # 1. Danh sách các parameter chứa output path trên các loại node (ROP, LOPS, SOP Cache)
+        # Sắp xếp theo thứ tự ưu tiên
+        parm_candidates = [
+            "vm_picture", "picture", "sopoutput", "file", 
+            "productName", "RS_outputFileNamePrefix", 
+            "RS_render_out_filename", "output_path", "output_file",
+            "render_path", "export_path", "basefile", "outfile"
+        ]
+        
+        raw_output = None
+        for p_name in parm_candidates:
+            parm = rop_node.parm(p_name)
+            if parm:
+                val = parm.eval()
+                if val and val != "":
+                    raw_output = val
+                    break
+        
+        # Nếu chưa tìm thấy, quét thông minh qua các parms có tên liên quan đến output/path
+        if not raw_output:
+            for p in rop_node.parms():
+                p_name_low = p.name().lower()
+                if any(x in p_name_low for x in ["output", "path", "picture", "file"]):
+                    if p.parmTemplate().type() == hou.parmTemplateType.String:
+                        p_val = p.eval()
+                        if p_val and ("/" in p_val or "\\" in p_val or "." in p_val):
+                            raw_output = p_val
+                            break
+
+        # 2. Xử lý output_dir riêng nếu có parameter này (thường thấy trong các HDA tùy chỉnh)
+        parm_dir = rop_node.parm("output_dir")
+        if parm_dir:
+            output_val = parm_dir.eval()
+            if output_val:
+                output_dir = hou.expandString(output_val).replace("\\", "/")
+            
+        if raw_output:
+            output_path = hou.expandString(raw_output).replace("\\", "/")
+            # Nếu path tương đối, thêm $HIP
+            if not os.path.isabs(output_path.split(' ')[0]) and ":" not in output_path:
+                output_path = (hou.expandString("$HIP/") + output_path).replace("//", "/")
+            
+            # Nếu chưa có output_dir từ tham số trực tiếp, lấy từ output_path
+            if output_dir == "N/A":
+                output_dir = os.path.dirname(output_path).replace("\\", "/")
+        
+        # Fallback cuối cùng nếu vẫn không thấy output_dir
+        if output_dir == "N/A":
+            output_dir = hou.expandString("$HIP/render").replace("\\", "/")
+            
+        # print(f">>> [TRACKER] Detected Output: {output_path}")
+    except Exception as e:
+        print(f">>> [TRACKER] Output Path Detection Error: {e}")
 
     # --- HỆ THỐNG LƯU TRỮ PHIÊN BẢN (PERSISTENCE) ---
     # Thay vì hou.session (gián đoạn khi tắt Houdini), ta dùng file log ở $HIP/render
@@ -145,6 +213,8 @@ def main_sync():
                 # Tùy chọn: Tự động mở web khi render bắt đầu (Xóa dấu # ở dưới nêú muốn)
                 # webbrowser.open(GITHUB_WEBSITE_URL)
             print(f">>> [TRACKER] File: {hip_name} | Node: {os_name} | Machine: {host_name}")
+            if is_cache_job:
+                print(">>> [TRACKER] Job Mode: CACHE")
             print(f">>> [TRACKER] Range: {rop_start} -> {rop_end} (Total: {rop_end - rop_start + 1} frames)")
 
         job_info['last_frame_time'] = current_time
@@ -271,6 +341,7 @@ def main_sync():
     db_payload = {
         render_key: {
             "shotName": os_name,
+            "is_cache": is_cache_job,
             "hipFile": hip_name,
             "workerName": host_name,
             "machine_name": host_name, # Alias cho dashboard cũ
@@ -314,7 +385,8 @@ def main_sync():
 
     payload = {
         "embeds": [{
-            "title": f"🎬 Node: {os_name}",
+            "title": f"🎬 {os_name}",
+            "description": f"**[{'CACHE MODE' if is_cache_job else 'RENDER MODE'}]**",
             "color": embed_color,
             "fields": [
                 {"name": "Houdini Project", "value": f"`{hip_name}`", "inline": True},
