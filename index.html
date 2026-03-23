@@ -241,8 +241,11 @@
                 if (w.status === 'Finished') progress = 100;
 
                 if (!shots[shotName]) {
+                    // Nhận diện Cache dựa trên flag is_cache từ Python hoặc fallback sang bộ lọc text
+                    const isCache = w.is_cache === true || shotName.includes("Shot Cache") || (w.node_path && w.node_path.toLowerCase().includes("cache"));
                     shots[shotName] = {
                         name: shotName,
+                        isCache: isCache,
                         gStart: globalS,
                         gEnd: globalE,
                         workers: []
@@ -312,7 +315,9 @@
                                 <div class="code-line"><span class="c-key">"cpu_model"</span>: <span class="c-string">"${w.cpu || 'Unknown'}"</span>,</div>
                                 <div class="code-line"><span class="c-key">"gpu_graphics"</span>: <span class="c-string">"${w.gpu || 'Unknown'}"</span>,</div>
                                 <div class="code-line"><span class="c-key">"total_ram"</span>: <span class="c-string">"${w.ram || 'Unknown'}"</span>,</div>
-                                <div class="code-line"><span class="c-key">"node_path"</span>: <span class="c-string">"${w.hipFile}"</span></div>
+                                <div class="code-line"><span class="c-key">"output_dir"</span>: <span class="c-string">"${w.output_dir || 'N/A'}"</span>,</div>
+                                <div class="code-line"><span class="c-key">"output_file"</span>: <span class="c-string">"${w.output_path || 'N/A'}"</span>,</div>
+                                <div class="code-line"><span class="c-key">"node_path"</span>: <span class="c-string">"${w.node_path || 'N/A'}"</span></div>
                             </div>
                         </div>
                     </div>
@@ -324,8 +329,8 @@
                 shotEl.innerHTML = `
                 <div class="shot-header">
                     <div class="input-group" style="flex:2">
-                        <label>Active Shot ($OS)</label>
-                        <div class="shot-title">${shot.name}</div>
+                        <label>${shot.isCache ? 'Cache Shot ($OS)' : 'Active Shot ($OS)'}</label>
+                        <div class="shot-title ${shot.isCache ? 'cache-mode' : ''}">${shot.name}</div>
                     </div>
                     <div class="input-group playbar-group">
                         <label>Global Playbar</label>
