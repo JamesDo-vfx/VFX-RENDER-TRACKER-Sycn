@@ -1,35 +1,39 @@
+<script>
+    // ==========================================
+    // # Copyright (c) 2026 Truong Do Trung Hieu | JamesDo . All rights reserved.
+    // # Product: DoneYet / JDTool for Houdini
+    // # Build: 2026.04.07
+    // # Unauthorized copying, resale, redistribution, or modification is prohibited.
+    // ==========================================
+</script>
+
+
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VFX Machine Render Tracker</title>
-    <!-- Modern Typography -->
+    <title>DoneYet Monitor</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Outfit:wght@400;700;900&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-
-    <script>
-        // ==========================================
-        // CONFIGURATION: SET YOUR FIREBASE URL HERE
-        // ==========================================
-        const FIREBASE_DATABASE_URL = "https://vfx-machine-tracker-default-rtdb.asia-southeast1.firebasedatabase.app/";
-    </script>
 </head>
 
 <body>
+    <div class="page-shell">
+        <header class="topbar">
+            <div class="brand-lockup">
+                <div class="brand-kicker">DoneYet Monitor</div>
+                <h1 class="brand-title">
+                    <span class="brand-title-main">DoneYet</span><span class="brand-title-accent">Monitor</span>
+                </h1>
+            </div>
 
-    <div class="main-header">
-        <div class="header-inner">
-            <h1>RENDER<span>TRACKER</span></h1>
-            <div class="header-actions">
-                <button class="btn-tool" onclick="toggleSplitter()">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                        stroke-linecap="round">
+            <div class="topbar-actions">
+                <button class="btn-tool" type="button" onclick="toggleSplitter()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="4" y1="6" x2="20" y2="6"></line>
                         <line x1="4" y1="12" x2="20" y2="12"></line>
                         <line x1="4" y1="18" x2="20" y2="18"></line>
@@ -37,126 +41,1151 @@
                     <span>Splitter Tool</span>
                 </button>
             </div>
-        </div>
-    </div>
+        </header>
 
-    <div class="container">
-
-        <div id="renderSplitter" class="splitter-panel">
-            <div style="margin-bottom: 25px; border-bottom: 1px solid var(--glass-border); padding-bottom: 15px;">
-                <h3 style="font-family:'Outfit'; color:#fff; font-size:16px; margin-bottom:5px">Render Range Splitter
-                </h3>
-                <p style="font-size:12px; color:var(--text-secondary); opacity:0.7">Công cụ hỗ trợ phân chia Render Job
-                    cho nhiều máy khác nhau.</p>
+        <div class="utility-bar">
+            <div class="utility-bar__source-group">
+                <div class="source-switch" role="group" aria-label="Dashboard data source">
+                    <button id="sourceLocalBtn" class="source-switch__button is-active" type="button" onclick="selectViewSource('local_db')">Local DB</button>
+                    <button id="sourceFirebaseBtn" class="source-switch__button" type="button" onclick="selectViewSource('firebase_mirror')">Cloud DB</button>
+                </div>
             </div>
+
+            <button class="btn-clear" type="button" onclick="clearDatabase()">Clear Local DB</button>
+        </div>
+
+        <section id="renderSplitter" class="splitter-panel">
+            <div class="splitter-header">
+                <div>
+                    <h3>Render Range Splitter</h3>
+                    <p>Split frame ranges across multiple workers while keeping the same dashboard data flow.</p>
+                </div>
+            </div>
+
             <div class="splitter-grid">
                 <div class="input-card">
-                    <label>Number of Machines</label>
-                    <div class="input-desc">Tổng số máy render đang có</div>
-                    <input type="number" id="splitMachines" value="4" min="1">
+                    <label for="splitMachines">Number of Machines</label>
+                    <div class="input-desc">Total render workers available for the shot.</div>
+                    <input type="number" id="splitMachines" value="4" min="1" title="Number of Machines">
                 </div>
+
                 <div class="input-card">
-                    <label>Secs per Frame</label>
-                    <div class="input-desc">Thời gian render 1 frame (giây)</div>
-                    <input type="number" id="splitSeconds" value="60" min="1">
+                    <label for="splitSeconds">Secs per Frame</label>
+                    <div class="input-desc">Estimated time to render a single frame.</div>
+                    <input type="number" id="splitSeconds" value="60" min="1" title="Seconds per Frame">
                 </div>
+
                 <div class="input-card">
-                    <label>Start Frame</label>
-                    <div class="input-desc">Frame bắt đầu (v.d: 1, 1001)</div>
-                    <input type="number" id="splitStart" value="1001">
+                    <label for="splitStart">Start Frame</label>
+                    <div class="input-desc">First frame of the global range.</div>
+                    <input type="number" id="splitStart" value="1001" title="Start Frame">
                 </div>
+
                 <div class="input-card">
-                    <label>End Frame</label>
-                    <div class="input-desc">Frame kết thúc (v.d: 240)</div>
-                    <input type="number" id="splitEnd" value="1200">
+                    <label for="splitEnd">End Frame</label>
+                    <div class="input-desc">Last frame of the global range.</div>
+                    <input type="number" id="splitEnd" value="1200" title="End Frame">
                 </div>
             </div>
-            <div id="splitterResults" class="results-area">
-                <!-- Results will appear here -->
+
+            <div id="splitterResults" class="results-area"></div>
+        </section>
+
+        <main id="shotList" class="shot-list"></main>
+
+        <div id="shotDetailBackdrop" class="shot-detail-backdrop" hidden></div>
+
+        <aside id="shotDetailPanel" class="shot-detail-panel" aria-hidden="true" tabindex="-1">
+            <button class="shot-detail-panel__resize-handle shot-detail-panel__resize-handle--left" type="button" data-resize-handle="left" aria-label="Resize detail panel width"></button>
+            <div id="shotDetailPanelBody" class="shot-detail-panel__body"></div>
+        </aside>
+
+        <footer class="site-footer">
+            <div class="site-footer__inner">
+                <p class="site-footer__copyright">
+                    <span class="site-footer__copy">&copy; <span id="appFooterYear">2026</span></span>
+                    <span id="appFooterBrand" class="site-footer__brand">Render Tracker</span>
+                    <span class="site-footer__dot">&bull;</span>
+                    <span>All Rights Reserved.</span>
+                </p>
+
+                <p class="site-footer__tagline">Custom VFX Pipeline Tool for Houdini &amp; Redshift.</p>
+
+                <p class="site-footer__credit">
+                    Developed and maintained by
+                    <a href="https://jamesdo-vfx.github.io/JamesDo-Portfolio/" target="_blank" rel="noreferrer" class="site-footer__link"><span id="appFooterOwner">JamesDo</span></a>.
+                    Powered by Antigravity.
+                </p>
+
+                <p id="appMetaPrimary" class="site-footer__meta">DoneYet / JDTool for Houdini | Build 2026.04.07</p>
             </div>
-        </div>
-
-        <div class="sync-bar">
-            <div class="status-badge"><span class="pulse-icon"></span> 🛰️ LIVE SYNC: ON</div>
-            <button class="btn-clear" onclick="clearDatabase()">Clear Firebase Data</button>
-        </div>
-
-        <div id="shotList">
-            <!-- Dashboard Content -->
-        </div>
+        </footer>
     </div>
+    
+    <div id="copyToast">Copied to clipboard</div>
 
-    <div class="footer">
-        &copy; 2026 <b>Render Tracker</b> &bullet; All Rights Reserved. <br>
-        <span style="opacity:0.6; font-size:11px; margin-top:10px; display:block">
-            Custom VFX Pipeline Tool for Houdini & Redshift. <br>
-            Developed and maintained by <a href="https://jamesdo-vfx.github.io/JamesDo-Portfolio/"
-                target="_blank" class="footer-link">JamesDo</a>.
-            Powered by Antigravity.
-        </span>
-    </div>
-
-    <div id="copyToast">Copied to clipboard!</div>
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-        import { getDatabase, ref, onValue, remove } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+        const FIREBASE_DATABASE_URL = "https://vfx-machine-tracker-default-rtdb.asia-southeast1.firebasedatabase.app/renders.json";
+        const LOCAL_DB_FILE_NAME = "doneyet_render_tracker.db";
 
-        const firebaseConfig = {
-            databaseURL: FIREBASE_DATABASE_URL
+        let runtimeMode = "private";
+        let firebaseUrlFromRuntime = FIREBASE_DATABASE_URL;
+        let selectedViewSource = "local_db";
+        let lastData = null;
+        let lastDataSignature = "";
+        let lastRuntimeStatusSignature = "";
+        let lastRuntimeMetadataSignature = "";
+        let lastCrashDetectionStatus = {};
+        let shotDeleteMap = {};
+        let sourcePollTimer = null;
+        let sourcePollDelayMs = 0;
+        let serviceStatusPollTimer = null;
+        let currentOverviewFilter = "all";
+        let selectedShotName = null;
+        let currentShots = [];
+        let currentShotsByName = new Map();
+        let expandedWorkerKeys = new Set();
+        let activeBreakpointClass = "";
+        let overviewLayoutSignature = "";
+        let localDbFileName = LOCAL_DB_FILE_NAME;
+        let currentViewMode = localStorage.getItem("jdtool-dashboard-view-mode") || "rail";
+        if (!["rail", "list", "machines"].includes(currentViewMode)) {
+            currentViewMode = "rail";
+        }
+        const VIEW_SOURCE_STORAGE_KEY = "jdtool-dashboard-view-source";
+        const sourceAvailability = {
+            local_db: { available: false, message: "Local DB unavailable." },
+            firebase_mirror: { available: false, message: "Cloud DB unavailable." }
         };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const colors = ['#ff79c6', '#8be9fd', '#50fa7b', '#f1fa8c', '#bd93f9', '#ffb86c', '#ff5555', '#4eecec'];
+        const viewSourceBadge = document.getElementById("viewSourceBadge");
+        const watchdogBadge = document.getElementById("watchdogBadge");
+        const mirrorSyncBtn = document.getElementById("mirrorSyncBtn");
+        const sourceLocalBtn = document.getElementById("sourceLocalBtn");
+        const sourceFirebaseBtn = document.getElementById("sourceFirebaseBtn");
+        const clearBtn = document.querySelector(".btn-clear");
+        const appMetaPrimary = document.getElementById("appMetaPrimary");
+        const appFooterOwner = document.getElementById("appFooterOwner");
+        const appFooterYear = document.getElementById("appFooterYear");
+        const shotList = document.getElementById("shotList");
+        const shotDetailBackdrop = document.getElementById("shotDetailBackdrop");
+        const shotDetailPanel = document.getElementById("shotDetailPanel");
+        const shotDetailPanelBody = document.getElementById("shotDetailPanelBody");
+        const PERF_DEBUG = new URLSearchParams(window.location.search).has("perf");
 
-        window.clearDatabase = () => {
-            if (confirm("Xóa toàn bộ dữ liệu trên Firebase?")) {
-                remove(ref(db, 'renders'));
+        function setViewSourceBadge(kind, text) {
+            if (!viewSourceBadge) return;
+            viewSourceBadge.classList.remove("sync-local", "sync-firebase", "sync-fallback", "sync-degraded", "sync-unconfigured");
+            viewSourceBadge.classList.add(kind);
+            viewSourceBadge.innerHTML = `<span class="pulse-icon"></span> ${text}`;
+        }
+
+        function setWatchdogBadge(kind, text, title = "") {
+            if (!watchdogBadge) return;
+            watchdogBadge.classList.remove(
+                "watchdog-waiting",
+                "watchdog-healthy",
+                "watchdog-starting",
+                "watchdog-offline",
+                "watchdog-degraded",
+                "watchdog-stalled",
+                "watchdog-crashed"
+            );
+            watchdogBadge.classList.add(kind);
+            watchdogBadge.innerHTML = `<span class="pulse-icon"></span> ${text}`;
+            watchdogBadge.title = title || text;
+        }
+
+        function applyWatchdogStatus(status) {
+            const payload = status && typeof status === "object" ? status : {};
+            lastCrashDetectionStatus = payload;
+            const state = String(payload.display_state || payload.operational_state || "").trim().toLowerCase();
+            const detail = String(payload.message || payload.status_message || "").trim();
+            const trackedJobs = Number(payload.tracked_jobs || 0);
+            if (state === "active") {
+                setWatchdogBadge(
+                    "watchdog-healthy",
+                    `RENDER TRACKING: ONLINE${trackedJobs > 0 ? ` (${trackedJobs})` : ""}`,
+                    detail || "Render tracking is online and watching live job data."
+                );
+                return;
+            }
+            if (state === "starting") {
+                setWatchdogBadge("watchdog-starting", "RENDER TRACKING: STARTING", detail || "Render tracking is starting.");
+                return;
+            }
+            if (state === "failed" || state === "startup_failed") {
+                setWatchdogBadge("watchdog-crashed", "RENDER TRACKING: ERROR", detail || "Render tracking failed to start.");
+                return;
+            }
+            setWatchdogBadge("watchdog-offline", "RENDER TRACKING: OFFLINE", detail || "Render tracking is offline.");
+        }
+
+        function getLocalDbLabel() {
+            return String(localDbFileName || LOCAL_DB_FILE_NAME || "doneyet-trackerk.db").trim();
+        }
+
+        function normalizeViewSource(value) {
+            return String(value || "").trim().toLowerCase() === "firebase_mirror" ? "firebase_mirror" : "local_db";
+        }
+
+        function getSelectedSourceLabel(source = selectedViewSource) {
+            return normalizeViewSource(source) === "firebase_mirror" ? "Cloud DB" : "Local DB";
+        }
+
+        function getSavedViewSource() {
+            try {
+                const stored = localStorage.getItem(VIEW_SOURCE_STORAGE_KEY);
+                return stored ? normalizeViewSource(stored) : "";
+            } catch (error) {
+                return "";
+            }
+        }
+
+        function saveSelectedViewSource() {
+            try {
+                localStorage.setItem(VIEW_SOURCE_STORAGE_KEY, selectedViewSource);
+            } catch (error) {
+                console.warn("Unable to persist selected view source.", error);
+            }
+        }
+
+        function normalizeFirebaseMirrorUrl(rawUrl) {
+            if (!rawUrl) return "";
+            const trimmed = String(rawUrl).trim().replace(/\/+$/, "");
+            if (!trimmed) return "";
+
+            try {
+                const parsed = new URL(trimmed);
+                const host = (parsed.hostname || "").toLowerCase();
+                if (!host.includes("firebaseio.com") && !host.includes("firebasedatabase.app")) {
+                    return "";
+                }
+                const cleanedPath = parsed.pathname
+                    .replace(/\/renders(?:\.json)?$/i, "")
+                    .replace(/\.json$/i, "");
+                parsed.pathname = `${cleanedPath || ""}/renders.json`.replace(/\/{2,}/g, "/");
+                parsed.search = "";
+                parsed.hash = "";
+                return parsed.toString();
+            } catch (error) {
+                return "";
+            }
+        }
+
+        function getFirebaseMirrorUrl() {
+            return normalizeFirebaseMirrorUrl(firebaseUrlFromRuntime || FIREBASE_DATABASE_URL);
+        }
+
+        async function clearFirebaseMirrorViaPatch(firebaseUrl) {
+            const readResp = await fetch(firebaseUrl, { cache: "no-store" });
+            if (!readResp.ok) throw new Error(`HTTP ${readResp.status}`);
+
+            const payload = await readResp.json().catch(() => ({}));
+            if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+                return { deletedCount: 0 };
+            }
+
+            const keys = Object.keys(payload).filter(Boolean);
+            if (!keys.length) {
+                return { deletedCount: 0 };
+            }
+
+            const clearPayload = {};
+            keys.forEach((key) => {
+                clearPayload[key] = null;
+            });
+
+            const clearResp = await fetch(firebaseUrl, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(clearPayload)
+            });
+            if (!clearResp.ok) throw new Error(`HTTP ${clearResp.status}`);
+            return { deletedCount: keys.length };
+        }
+
+        function markSourceAvailability(source, available, message) {
+            sourceAvailability[normalizeViewSource(source)] = {
+                available: !!available,
+                message: String(message || "").trim()
+            };
+            updateActionButtons();
+        }
+
+        function renderUnavailableState(title, message) {
+            currentShots = [];
+            currentShotsByName = new Map();
+            overviewLayoutSignature = "";
+            closeShotDetailPanel({ preserveSelection: false });
+            shotList.innerHTML = `
+                <section class="empty-state">
+                    <h2>${escapeHtml(title)}</h2>
+                    <p>${escapeHtml(message)}</p>
+                </section>
+            `;
+        }
+
+        function stopSourcePolling() {
+            if (sourcePollTimer) {
+                clearTimeout(sourcePollTimer);
+                sourcePollTimer = null;
+            }
+        }
+
+        function scheduleSourcePolling(delayMs) {
+            stopSourcePolling();
+            sourcePollDelayMs = Math.max(1500, Number(delayMs || 0) || 5000);
+            const pollFn = selectedViewSource === "firebase_mirror" ? fetchFirebaseData : fetchLocalData;
+            sourcePollTimer = setTimeout(() => {
+                pollFn().catch((error) => {
+                    console.error("Source polling error:", error);
+                });
+            }, sourcePollDelayMs);
+        }
+
+        function updateSourceButtons() {
+            const localSelected = selectedViewSource === "local_db";
+            sourceLocalBtn.classList.toggle("is-active", localSelected);
+            sourceFirebaseBtn.classList.toggle("is-active", !localSelected);
+            sourceLocalBtn.setAttribute("aria-pressed", localSelected ? "true" : "false");
+            sourceFirebaseBtn.setAttribute("aria-pressed", !localSelected ? "true" : "false");
+        }
+
+        function updateManualSyncButton() {
+            if (!mirrorSyncBtn) {
+                return;
+            }
+            const mirrorConfigured = !!getFirebaseMirrorUrl();
+            const localAvailable = !!sourceAvailability.local_db.available;
+            const syncEnabled = mirrorConfigured && localAvailable;
+            mirrorSyncBtn.style.display = "inline-flex";
+            mirrorSyncBtn.disabled = !syncEnabled;
+            mirrorSyncBtn.title = syncEnabled
+                ? "Sync SQLite truth to Firebase mirror now"
+                : (!mirrorConfigured
+                    ? "Firebase mirror is not configured."
+                    : "Local DB API is unavailable, so SQLite cannot be synced from this dashboard.");
+        }
+
+        function updateActionButtons() {
+            const localSelected = selectedViewSource === "local_db";
+            const currentAvailability = sourceAvailability[selectedViewSource] || { available: false, message: "" };
+            clearBtn.textContent = localSelected ? "Clear Local DB" : "Clear Cloud DB";
+            clearBtn.disabled = !currentAvailability.available;
+            clearBtn.title = currentAvailability.available
+                ? (localSelected ? "Clear Local DB only" : "Clear Cloud DB only")
+                : (currentAvailability.message || `${getSelectedSourceLabel()} unavailable.`);
+            updateManualSyncButton();
+        }
+
+        function applyViewSourceStatus() {
+            const availability = sourceAvailability[selectedViewSource] || { available: false };
+            if (selectedViewSource === "firebase_mirror") {
+                if (availability.available) {
+                    setViewSourceBadge("sync-firebase", "VIEW: CLOUD DB");
+                } else if (getFirebaseMirrorUrl()) {
+                    setViewSourceBadge("sync-degraded", "VIEW: CLOUD DB UNAVAILABLE");
+                } else {
+                    setViewSourceBadge("sync-unconfigured", "VIEW: CLOUD DB UNCONFIGURED");
+                }
+                return;
+            }
+
+            if (availability.available) {
+                setViewSourceBadge("sync-local", "VIEW: LOCAL DB");
+            } else {
+                setViewSourceBadge("sync-degraded", "VIEW: LOCAL DB UNAVAILABLE");
+            }
+        }
+
+        function confirmLiveSync() {
+            const dbLabel = getLocalDbLabel();
+            if (!getFirebaseMirrorUrl()) {
+                showToast("Firebase mirror is not configured. Tracker is running local-only on SQLite.");
+                return false;
+            }
+            if (!sourceAvailability.local_db.available) {
+                showToast("Local DB is unavailable, so SQLite cannot be synced from this dashboard.");
+                return false;
+            }
+            return window.confirm(
+                `Do you want to mirror all shots from ${dbLabel} to Firebase?\n\nSQLite remains the source of truth.`
+            );
+        }
+
+        window.triggerLiveSync = async function () {
+            if (!confirmLiveSync()) {
+                return;
+            }
+
+            if (mirrorSyncBtn) {
+                mirrorSyncBtn.disabled = true;
+            }
+
+            try {
+                const resp = await fetch("/api/sync_to_firebase", { method: "POST" });
+                const payload = await resp.json().catch(() => ({}));
+                if (!resp.ok || !payload.ok) {
+                    throw new Error(payload.message || `HTTP ${resp.status}`);
+                }
+
+                const pushed = Number(payload.pushed || 0);
+                const dbLabel = getLocalDbLabel();
+                if (pushed > 0) {
+                    showToast(`Mirrored ${pushed} SQLite record${pushed === 1 ? "" : "s"} from ${dbLabel} to Firebase.`);
+                } else {
+                    showToast(payload.message || "Local database is already in sync.");
+                }
+            } catch (err) {
+                console.error("Manual Firebase sync error:", err);
+                showToast(`Firebase mirror sync failed: ${err.message || err}`);
+            } finally {
+                updateManualSyncButton();
             }
         };
+
+        function applyRuntimeMetadata(runtime) {
+            const productName = String((runtime && runtime.product_name) || "DoneYet / JDTool for Houdini").trim();
+            const buildId = String((runtime && runtime.build_id) || "2026.04.07").trim();
+            const owner = String((runtime && runtime.owner) || "Truong Do Trung Hieu | JamesDo").trim();
+            const footerOwner = owner.split("|").map((part) => part.trim()).filter(Boolean).pop() || owner;
+
+            if (appMetaPrimary) {
+                appMetaPrimary.textContent = `${productName} | Build ${buildId}`;
+            }
+
+            if (appFooterOwner) {
+                appFooterOwner.textContent = footerOwner;
+            }
+
+            if (appFooterYear) {
+                appFooterYear.textContent = String(new Date().getFullYear());
+            }
+        }
+
+        function applyRuntimePayload(runtime) {
+            const payload = runtime && typeof runtime === "object" ? runtime : {};
+            const metadataSignature = JSON.stringify({
+                product_name: payload.product_name || "",
+                build_id: payload.build_id || "",
+                owner: payload.owner || "",
+                db_path: payload.db_path || "",
+                firebase_url_default: payload.firebase_url_default || "",
+                view_source_default: payload.view_source_default || "",
+            });
+            if (metadataSignature !== lastRuntimeMetadataSignature) {
+                lastRuntimeMetadataSignature = metadataSignature;
+                if (payload.firebase_url_default) {
+                    firebaseUrlFromRuntime = payload.firebase_url_default;
+                }
+                if (payload.db_path) {
+                    const runtimeDbPath = String(payload.db_path || "").trim();
+                    const runtimeDbName = runtimeDbPath.split(/[\\/]/).pop();
+                    if (runtimeDbName) localDbFileName = runtimeDbName;
+                }
+                applyRuntimeMetadata(payload);
+            }
+
+            const servicePayload = payload.crash_detection_status || payload.watchdog_status || {};
+            const serviceSignature = JSON.stringify(servicePayload || {});
+            if (serviceSignature && serviceSignature !== lastRuntimeStatusSignature) {
+                lastRuntimeStatusSignature = serviceSignature;
+                applyWatchdogStatus(servicePayload);
+            }
+        }
+
+        async function refreshRuntimeMetadata() {
+            try {
+                const runtimeResp = await fetch("/server_runtime.json", { cache: "no-store" });
+                if (!runtimeResp.ok) return null;
+                const runtime = await runtimeResp.json();
+                applyRuntimePayload(runtime);
+                return runtime;
+            } catch (err) {
+                console.warn("Runtime metadata unavailable.", err);
+                return null;
+            }
+        }
+
+        async function refreshWatchdogServiceStatus() {
+            try {
+                const runtimeStatusResp = await fetch("/api/service_status", { cache: "no-store" });
+                if (!runtimeStatusResp.ok) return;
+                const runtimeStatusText = await runtimeStatusResp.text();
+                if (runtimeStatusText && runtimeStatusText !== lastRuntimeStatusSignature) {
+                    lastRuntimeStatusSignature = runtimeStatusText;
+                    applyWatchdogStatus(JSON.parse(runtimeStatusText));
+                    if (lastData !== null) {
+                        renderUI(lastData);
+                    }
+                }
+            } catch (err) {
+                console.warn("Service status poll failed.", err);
+            }
+        }
+
+        function startServiceStatusPolling() {
+            if (serviceStatusPollTimer) return;
+            serviceStatusPollTimer = window.setInterval(() => {
+                refreshRuntimeMetadata();
+                refreshWatchdogServiceStatus();
+            }, 3000);
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                "\"": "&quot;",
+                "'": "&#39;"
+            }[char]));
+        }
+
+        function escapeAttr(value) {
+            return escapeHtml(value).replace(/`/g, "&#96;");
+        }
+
+        function hexToRgba(hex, alpha) {
+            const fallback = `rgba(255, 255, 255, ${alpha})`;
+            if (!hex) return fallback;
+
+            const raw = String(hex).trim().replace("#", "");
+            const normalized = raw.length === 3
+                ? raw.split("").map((part) => part + part).join("")
+                : raw;
+
+            if (!/^[0-9a-fA-F]{6}$/.test(normalized)) return fallback;
+
+            const r = parseInt(normalized.slice(0, 2), 16);
+            const g = parseInt(normalized.slice(2, 4), 16);
+            const b = parseInt(normalized.slice(4, 6), 16);
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+
+        function clamp(value, min, max) {
+            return Math.min(max, Math.max(min, value));
+        }
+
+        const readableTimeFormatter = new Intl.DateTimeFormat(undefined, {
+            hour: "numeric",
+            minute: "2-digit"
+        });
+
+        const readableDateTimeFormatter = new Intl.DateTimeFormat(undefined, {
+            year: "numeric",
+            month: "short",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit"
+        });
+
+        function parseTimestampToDate(value) {
+            if (value === null || value === undefined || value === "") {
+                return null;
+            }
+
+            const raw = String(value).trim();
+            if (!raw) {
+                return null;
+            }
+
+            const numericValue = Number(raw);
+            if (Number.isFinite(numericValue)) {
+                if (numericValue <= 0) {
+                    return null;
+                }
+
+                const epochMs = numericValue > 1e11 ? numericValue : numericValue * 1000;
+                const date = new Date(epochMs);
+                return Number.isNaN(date.getTime()) ? null : date;
+            }
+
+            const parsedDate = new Date(raw);
+            return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+        }
+
+        function formatReadableDateTime(value) {
+            const parsedDate = parseTimestampToDate(value);
+            return parsedDate ? readableDateTimeFormatter.format(parsedDate) : "N/A";
+        }
+
+        function safeTableValue(value, fallback = "-") {
+            if (value === null || value === undefined) return fallback;
+            const text = String(value).trim();
+            if (!text) return fallback;
+            if (text.toUpperCase() === "N/A" || text.toUpperCase() === "UNKNOWN") return fallback;
+            return text;
+        }
+
+        function formatTableFrame(value) {
+            const numeric = Number(value);
+            return Number.isFinite(numeric) ? String(Math.round(numeric)) : "-";
+        }
+
+        function formatTableProgress(value) {
+            const numeric = Number(value);
+            return Number.isFinite(numeric) ? `${Math.round(clamp(numeric, 0, 100))}%` : "-";
+        }
+
+        function applyDensityCompensation() {
+            const dpr = window.devicePixelRatio || 1;
+            const widthCandidates = [
+                window.innerWidth,
+                document.documentElement ? document.documentElement.clientWidth : 0,
+                document.body ? document.body.clientWidth : 0,
+                window.visualViewport ? window.visualViewport.width : 0
+            ].filter((value) => Number.isFinite(value) && value > 0);
+            const heightCandidates = [
+                window.innerHeight,
+                document.documentElement ? document.documentElement.clientHeight : 0,
+                document.body ? document.body.clientHeight : 0,
+                window.visualViewport ? window.visualViewport.height : 0
+            ].filter((value) => Number.isFinite(value) && value > 0);
+
+            const cssWidth = widthCandidates.length ? Math.min(...widthCandidates) : 0;
+            const shortestViewportSide = [...widthCandidates, ...heightCandidates].length
+                ? Math.min(...[...widthCandidates, ...heightCandidates])
+                : cssWidth;
+            const physicalWidth = cssWidth * dpr;
+            const isCoarsePointer = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches) || (navigator.maxTouchPoints || 0) > 0;
+            const shouldForceDesktop = !isCoarsePointer && dpr > 1.25 && cssWidth < 900 && physicalWidth >= 1200;
+            const effectiveWidth = shouldForceDesktop ? physicalWidth : cssWidth;
+            const nextBreakpointClass = (isCoarsePointer && shortestViewportSide <= 760)
+                ? "bp-mobile"
+                : (effectiveWidth >= 1500 ? "bp-wide" : (effectiveWidth >= 760 ? "bp-standard" : "bp-mobile"));
+
+            document.body.classList.toggle("force-desktop", shouldForceDesktop);
+            document.body.classList.remove("bp-mobile", "bp-standard", "bp-wide");
+            document.body.classList.add(nextBreakpointClass);
+
+            if (shouldForceDesktop) {
+                document.body.style.zoom = String(1 / dpr);
+                document.body.style.width = `${dpr * 100}%`;
+            } else {
+                document.body.style.zoom = "";
+                document.body.style.width = "";
+            }
+
+            if (activeBreakpointClass !== nextBreakpointClass) {
+                activeBreakpointClass = nextBreakpointClass;
+                if (lastData !== null) {
+                    renderUI(lastData);
+                }
+            }
+        }
+
+        async function canUseLocalDatabase() {
+            try {
+                const apiHead = await fetch("/api/data", { method: "HEAD", cache: "no-store" });
+                if (!apiHead.ok) return false;
+
+                try {
+                    const runtimeResp = await fetch("/server_runtime.json", { cache: "no-store" });
+                    if (!runtimeResp.ok) return true;
+
+                    const runtime = await runtimeResp.json();
+                    const dbPath = ((runtime && runtime.db_path) || "").toLowerCase();
+                    return dbPath.endsWith(`/${localDbFileName.toLowerCase()}`) || dbPath.endsWith(`\\${localDbFileName.toLowerCase()}`);
+                } catch (runtimeErr) {
+                    console.warn("Runtime info unavailable, fallback to /api/data check only.", runtimeErr);
+                    return true;
+                }
+            } catch (err) {
+                console.warn("Local database check failed.", err);
+                return false;
+            }
+        }
+
+        async function init() {
+            applyDensityCompensation();
+
+            let mode = "private";
+            const runtime = await refreshRuntimeMetadata();
+            if (runtime && runtime.tracker_mode) {
+                mode = runtime.tracker_mode;
+            }
+
+            runtimeMode = mode;
+            const runtimeDefaultSource = normalizeViewSource(runtime && runtime.view_source_default ? runtime.view_source_default : "local_db");
+            const savedSource = getSavedViewSource();
+            selectedViewSource = savedSource || runtimeDefaultSource;
+            updateSourceButtons();
+            updateActionButtons();
+            startServiceStatusPolling();
+            await refreshWatchdogServiceStatus();
+            await activateSelectedSource();
+        }
+
+        async function fetchLocalData() {
+            console.info("[JDTool/UI] Attempting read source=local_db via /api/data");
+            const fetchStartedAt = performance.now();
+            try {
+                const [res, runtimeStatusResp] = await Promise.all([
+                    fetch("/api/data", { cache: "no-store" }),
+                    fetch("/api/service_status", { cache: "no-store" }).catch(() => null),
+                ]);
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`);
+                }
+                const dataSignature = res.headers.get("X-JDTool-Data-Signature") || "";
+                const dataText = await res.text();
+                if (runtimeStatusResp && runtimeStatusResp.ok) {
+                    const runtimeStatusText = await runtimeStatusResp.text();
+                    if (runtimeStatusText && runtimeStatusText !== lastRuntimeStatusSignature) {
+                        lastRuntimeStatusSignature = runtimeStatusText;
+                        applyWatchdogStatus(JSON.parse(runtimeStatusText));
+                        if (lastData !== null) {
+                            renderUI(lastData);
+                        }
+                    }
+                }
+                markSourceAvailability("local_db", true, "Local DB available.");
+                if (dataSignature && dataSignature === lastDataSignature) {
+                    applyViewSourceStatus();
+                    scheduleSourcePolling(7000);
+                    return;
+                }
+                if (!dataSignature && dataText === lastDataSignature) {
+                    applyViewSourceStatus();
+                    scheduleSourcePolling(7000);
+                    return;
+                }
+                lastDataSignature = dataSignature || dataText;
+                const data = dataText ? JSON.parse(dataText) : {};
+                lastData = data;
+                renderUI(data);
+                applyViewSourceStatus();
+                if (PERF_DEBUG) {
+                    console.info(`[JDTool/UI/PERF] local_fetch_render_ms=${(performance.now() - fetchStartedAt).toFixed(2)}`);
+                }
+                scheduleSourcePolling(2500);
+            } catch (err) {
+                console.error("Local DB read error:", err);
+                markSourceAvailability("local_db", false, `Local DB unavailable: ${err.message || err}`);
+                applyViewSourceStatus();
+                if (selectedViewSource === "local_db") {
+                renderUnavailableState("Local DB Unavailable", "The local SQLite-backed API could not be reached. The dashboard will not fall back to Cloud DB automatically.");
+                }
+                scheduleSourcePolling(12000);
+            }
+        }
+
+        async function fetchFirebaseData() {
+            const firebaseUrl = getFirebaseMirrorUrl();
+            if (!firebaseUrl) {
+                markSourceAvailability("firebase_mirror", false, "Cloud DB is not configured.");
+                applyViewSourceStatus();
+                renderUnavailableState("Cloud DB Unavailable", "Cloud DB is not configured for this tracker. SQLite remains the source of truth and the dashboard will not fall back to Local DB automatically.");
+                scheduleSourcePolling(15000);
+                return;
+            }
+
+            console.info(`[JDTool/UI] Attempting read source=firebase_mirror url=${firebaseUrl}`);
+            const fetchStartedAt = performance.now();
+            try {
+                const resp = await fetch(firebaseUrl, { cache: "no-store" });
+                if (!resp.ok) {
+                    throw new Error(`HTTP ${resp.status}`);
+                }
+                const dataText = await resp.text();
+                markSourceAvailability("firebase_mirror", true, "Cloud DB available.");
+                if (dataText === lastDataSignature) {
+                    applyViewSourceStatus();
+                    scheduleSourcePolling(10000);
+                    return;
+                }
+                lastDataSignature = dataText;
+                lastData = dataText ? (JSON.parse(dataText) || {}) : {};
+                renderUI(lastData);
+                applyViewSourceStatus();
+                if (PERF_DEBUG) {
+                    console.info(`[JDTool/UI/PERF] firebase_fetch_render_ms=${(performance.now() - fetchStartedAt).toFixed(2)}`);
+                }
+                scheduleSourcePolling(4500);
+            } catch (err) {
+                console.error("Cloud DB read error:", err);
+                markSourceAvailability("firebase_mirror", false, `Cloud DB unavailable: ${err.message || err}`);
+                applyViewSourceStatus();
+                renderUnavailableState("Cloud DB Unavailable", "The dashboard could not read Cloud DB. The dashboard will not fall back to Local DB automatically.");
+                scheduleSourcePolling(15000);
+            }
+        }
+
+        async function activateSelectedSource() {
+            stopSourcePolling();
+            updateSourceButtons();
+            updateActionButtons();
+            applyViewSourceStatus();
+            lastDataSignature = "";
+            lastRuntimeStatusSignature = "";
+
+            if (selectedViewSource === "firebase_mirror") {
+                await fetchFirebaseData();
+                return;
+            }
+
+            await fetchLocalData();
+        }
+
+        window.selectViewSource = async function (source) {
+            selectedViewSource = normalizeViewSource(source);
+            saveSelectedViewSource();
+            console.info(`[JDTool/UI] Selected view source=${selectedViewSource}`);
+            await activateSelectedSource();
+        };
+
+        window.clearDatabase = async () => {
+            const selectedLabel = getSelectedSourceLabel();
+            const availability = sourceAvailability[selectedViewSource] || { available: false, message: "" };
+            if (!availability.available) {
+                showToast(availability.message || `${selectedLabel} unavailable.`);
+                return;
+            }
+
+            const clearScope = selectedViewSource === "firebase_mirror" ? "Cloud DB" : "Local DB";
+            if (!confirm(`Delete all tracker data from ${clearScope}?`)) return;
+
+            try {
+                if (selectedViewSource === "firebase_mirror") {
+                    const firebaseUrl = getFirebaseMirrorUrl();
+                    const result = await clearFirebaseMirrorViaPatch(firebaseUrl);
+                    console.info(`[JDTool/UI] Clear action target=firebase_mirror url=${firebaseUrl} deleted=${result.deletedCount}`);
+                } else {
+                    const resp = await fetch("/api/clear_all", { method: "POST" });
+                    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                    console.info("[JDTool/UI] Clear action target=local_db via /api/clear_all");
+                }
+
+                lastData = {};
+                renderUI({});
+                showToast(selectedViewSource === "firebase_mirror" ? "Cloud DB cleared." : "Local DB cleared.");
+                setTimeout(() => activateSelectedSource(), 500);
+                return;
+            } catch (err) {
+                console.error("Clear action error:", err);
+                showToast(`${selectedLabel} clear failed: ${err.message || err}`);
+            }
+        };
+
+        async function deleteShotViaApi(shotName, shotKeys = []) {
+            const availability = sourceAvailability[selectedViewSource] || { available: false, message: "" };
+            const deleteScope = selectedViewSource === "firebase_mirror" ? "Cloud DB" : "Local DB";
+            if (!availability.available) {
+                showToast(availability.message || `${deleteScope} unavailable.`);
+                return false;
+            }
+            if (!confirm(`Delete shot "${shotName}" from ${deleteScope}?`)) return true;
+
+            try {
+                if (selectedViewSource === "firebase_mirror") {
+                    const firebaseUrl = getFirebaseMirrorUrl();
+                    const uniqueKeys = [...new Set((shotKeys || []).filter(Boolean))];
+                    const payload = {};
+                    uniqueKeys.forEach((key) => {
+                        payload[key] = null;
+                    });
+                    const resp = await fetch(firebaseUrl, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                    console.info(`[JDTool/UI] Delete action target=firebase_mirror keys=${uniqueKeys.length} shot_name=${shotName}`);
+                } else {
+                    const resp = await fetch("/api/delete", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            shot_name: shotName,
+                            keys: shotKeys
+                        })
+                    });
+
+                    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                    console.info(`[JDTool/UI] Delete action target=local_db keys=${(shotKeys || []).length} shot_name=${shotName}`);
+                }
+
+                if (lastData) {
+                    shotKeys.forEach((key) => delete lastData[key]);
+                    renderUI(lastData);
+                }
+
+                showToast(selectedViewSource === "firebase_mirror"
+                    ? `Deleted ${shotName} from Cloud DB.`
+                    : `Deleted ${shotName} from Local DB.`);
+                setTimeout(() => activateSelectedSource(), 800);
+                return true;
+            } catch (err) {
+                console.error("Delete action error:", err);
+                showToast(`${deleteScope} delete failed: ${err.message || err}`);
+                return false;
+            }
+        }
+
+        window.deleteShotById = (shotId) => {
+            const shot = shotDeleteMap[shotId];
+            if (!shot) return;
+            window.deleteShot(shot.name, shot.keys || []);
+        };
+
+        window.deleteShot = async (shotName, shotKeys = []) => {
+            const ok = await deleteShotViaApi(shotName, shotKeys);
+            if (ok) return;
+        };
+
+        init();
+        window.addEventListener("resize", () => {
+            applyDensityCompensation();
+            requestAnimationFrame(() => refreshShotCardTitleMarquees(shotList));
+        });
+        window.addEventListener("load", () => {
+            applyDensityCompensation();
+            requestAnimationFrame(() => refreshShotCardTitleMarquees(shotList));
+        });
+        window.addEventListener("orientationchange", () => {
+            applyDensityCompensation();
+            requestAnimationFrame(() => refreshShotCardTitleMarquees(shotList));
+        });
+        window.addEventListener("beforeunload", () => {
+            stopSourcePolling();
+            if (serviceStatusPollTimer) {
+                clearInterval(serviceStatusPollTimer);
+                serviceStatusPollTimer = null;
+            }
+        });
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener("resize", () => {
+                applyDensityCompensation();
+                requestAnimationFrame(() => refreshShotCardTitleMarquees(shotList));
+            });
+        }
+
+        const colors = ["#ff72c1", "#8fe6ff", "#58ff8a", "#f5f18f", "#9db2ff", "#ffce7e", "#ff7b8a", "#75ffd6"];
+        const FILTERS = [
+            { id: "all", label: "All" },
+            { id: "rendering", label: "Rendering" },
+            { id: "stalled", label: "Stalled" },
+            { id: "crashed", label: "Crashed" },
+            { id: "cache", label: "Cache" },
+            { id: "render", label: "Render" }
+        ];
+        let detailBackdropTimer = null;
+        let detailPanelResizeState = null;
+        const DETAIL_PANEL_STORAGE_KEY = "jdtool-shot-detail-panel-size";
 
         window.copyToClipboard = (text) => {
             if (!text || text === "N/A") {
-                alert("Không có đường dẫn để copy!");
+                alert("No path available to copy.");
                 return;
             }
+
             navigator.clipboard.writeText(text).then(() => {
-                showToast("Copied output directory!");
-            }).catch(err => {
-                console.error('Failed to copy: ', err);
+                showToast("Copied output directory.");
+            }).catch((err) => {
+                console.error("Failed to copy:", err);
             });
         };
 
         function showToast(message) {
-            const toast = document.getElementById('copyToast');
+            const toast = document.getElementById("copyToast");
             toast.textContent = message;
-            toast.classList.add('show');
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 2000);
+            toast.classList.add("show");
+            setTimeout(() => toast.classList.remove("show"), 2000);
         }
 
-        const renderRef = ref(db, 'renders');
-        onValue(renderRef, (snapshot) => {
-            const data = snapshot.val();
-            renderUI(data);
-        });
-
-
-        // ==========================================
-        // RENDER SPLITTER TOOL LOGIC
-        // ==========================================
         window.toggleSplitter = () => {
-            const panel = document.getElementById('renderSplitter');
-            panel.classList.toggle('show');
-            if (panel.classList.contains('show')) {
-                calculateSplit();
+            const panel = document.getElementById("renderSplitter");
+            panel.classList.toggle("show");
+            if (panel.classList.contains("show")) calculateSplit();
+        };
+
+        window.toggleWorkerDetails = (trigger) => {
+            const container = trigger.closest(".worker-item-container");
+            if (!container) return;
+
+            const workerKey = container.dataset.workerKey || "";
+            const isExpanded = container.classList.toggle("expanded");
+
+            if (workerKey) {
+                if (isExpanded) {
+                    expandedWorkerKeys.add(workerKey);
+                } else {
+                    expandedWorkerKeys.delete(workerKey);
+                }
             }
         };
 
-        const splitInputs = ['splitMachines', 'splitStart', 'splitEnd', 'splitSeconds'];
-        splitInputs.forEach(id => {
-            document.getElementById(id).addEventListener('input', calculateSplit);
+        window.setOverviewFilter = (filterId) => {
+            if (!FILTERS.some((filter) => filter.id === filterId)) return;
+            currentOverviewFilter = filterId;
+            renderUI(lastData);
+        };
+
+        window.setViewMode = (mode) => {
+            if (!["rail", "list", "machines"].includes(mode)) return;
+            currentViewMode = mode;
+            localStorage.setItem("jdtool-dashboard-view-mode", mode);
+            if (lastData) renderUI(lastData);
+        };
+
+        window.scrollShotRail = (button) => {
+            if (!button) return;
+
+            const track = document.getElementById(button.dataset.target || "");
+            if (!track) return;
+
+            const direction = Number(button.dataset.direction || 1);
+            const delta = Math.max(track.clientWidth * 0.82, 320) * direction;
+            track.scrollBy({ left: delta, behavior: "smooth" });
+        };
+
+        window.openShotDetailPanel = (shotName) => {
+            if (!shotName || !currentShotsByName.has(shotName)) return;
+
+            if (selectedShotName !== shotName) {
+                expandedWorkerKeys = new Set();
+            }
+
+            selectedShotName = shotName;
+            renderSelectedShotDetail(true);
+            updateSelectedShotCards();
+        };
+
+        window.openShotDetailPanelByCard = (trigger) => {
+            if (!trigger || !trigger.dataset) return;
+            const shotName = trigger.dataset.shotName || "";
+            if (shotName) window.openShotDetailPanel(shotName);
+        };
+
+        window.closeShotDetailPanel = () => {
+            closeShotDetailPanel();
+        };
+
+        function isCompactDetailLayout() {
+            return window.innerWidth <= 820;
+        }
+
+        function getDetailPanelBounds() {
+            return {
+                minWidth: Math.min(520, Math.max(340, window.innerWidth * 0.42)),
+                maxWidth: Math.max(560, window.innerWidth - 120)
+            };
+        }
+
+        function saveDetailPanelSize() {
+            if (!shotDetailPanel || isCompactDetailLayout()) return;
+
+            const width = parseFloat(shotDetailPanel.style.width);
+            if (!Number.isFinite(width)) return;
+
+            try {
+                localStorage.setItem(DETAIL_PANEL_STORAGE_KEY, JSON.stringify({ width }));
+            } catch (error) {
+                console.warn("Unable to persist detail panel size", error);
+            }
+        }
+
+        function applyDetailPanelSize(width) {
+            if (!shotDetailPanel) return;
+
+            if (isCompactDetailLayout()) {
+                shotDetailPanel.style.removeProperty("width");
+                updateDetailPanelLayoutMode();
+                return;
+            }
+
+            const bounds = getDetailPanelBounds();
+            const nextWidth = clamp(width, bounds.minWidth, bounds.maxWidth);
+
+            shotDetailPanel.style.width = `${nextWidth}px`;
+            updateDetailPanelLayoutMode();
+        }
+
+        function updateDetailPanelLayoutMode() {
+            if (!shotDetailPanel) return;
+
+            const panelWidth = shotDetailPanel.getBoundingClientRect().width || window.innerWidth;
+            shotDetailPanel.classList.toggle("detail-panel-tight", panelWidth <= 920);
+            shotDetailPanel.classList.toggle("detail-panel-tiny", panelWidth <= 760);
+            shotDetailPanel.classList.toggle("detail-panel-micro", panelWidth <= 520);
+        }
+
+        function restoreDetailPanelSize() {
+            if (!shotDetailPanel || isCompactDetailLayout()) {
+                applyDetailPanelSize(0);
+                return;
+            }
+
+            const defaultWidth = Math.min(860, window.innerWidth);
+            let width = defaultWidth;
+
+            try {
+                const raw = localStorage.getItem(DETAIL_PANEL_STORAGE_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (Number.isFinite(parsed.width)) width = parsed.width;
+                }
+            } catch (error) {
+                console.warn("Unable to restore detail panel size", error);
+            }
+
+            applyDetailPanelSize(width);
+        }
+
+        function stopDetailPanelResize() {
+            if (!detailPanelResizeState) return;
+
+            detailPanelResizeState = null;
+            shotDetailPanel.classList.remove("is-resizing");
+            document.body.classList.remove("detail-panel-resizing");
+            saveDetailPanelSize();
+        }
+
+        function updateDetailPanelResize(clientX) {
+            if (!detailPanelResizeState || !shotDetailPanel) return;
+
+            const deltaX = detailPanelResizeState.startX - clientX;
+            const nextWidth = detailPanelResizeState.startWidth + deltaX;
+            applyDetailPanelSize(nextWidth);
+        }
+
+        function beginDetailPanelResize(event) {
+            if (isCompactDetailLayout()) return;
+
+            const handle = event.target.closest("[data-resize-handle]");
+            if (!handle || !shotDetailPanel) return;
+
+            event.preventDefault();
+
+            const rect = shotDetailPanel.getBoundingClientRect();
+            detailPanelResizeState = {
+                startX: event.clientX,
+                startWidth: rect.width
+            };
+
+            shotDetailPanel.classList.add("is-resizing");
+            document.body.classList.add("detail-panel-resizing");
+        }
+
+        restoreDetailPanelSize();
+
+        if (window.ResizeObserver && shotDetailPanel) {
+            const detailPanelResizeObserver = new ResizeObserver(() => updateDetailPanelLayoutMode());
+            detailPanelResizeObserver.observe(shotDetailPanel);
+        }
+
+        shotDetailPanel.addEventListener("pointerdown", beginDetailPanelResize);
+        window.addEventListener("pointermove", (event) => updateDetailPanelResize(event.clientX));
+        window.addEventListener("pointerup", stopDetailPanelResize);
+        window.addEventListener("pointercancel", stopDetailPanelResize);
+        window.addEventListener("resize", restoreDetailPanelSize);
+
+        ["splitMachines", "splitStart", "splitEnd", "splitSeconds"].forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener("input", calculateSplit);
         });
 
         function formatDuration(seconds) {
@@ -166,203 +1195,1787 @@
             return `${h}h ${m}m ${s}s`;
         }
 
-        function calculateSplit() {
-            const numMachines = parseInt(document.getElementById('splitMachines').value) || 1;
-            const start = parseInt(document.getElementById('splitStart').value) || 1;
-            const end = parseInt(document.getElementById('splitEnd').value) || 1;
-            const secPerFrame = parseInt(document.getElementById('splitSeconds').value) || 0;
+        function pluralize(value, singular, plural = `${singular}s`) {
+            return value === 1 ? singular : plural;
+        }
 
+        function shouldReduceMotion() {
+            return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+        }
+
+        function calculateSplit() {
+            const numMachines = parseInt(document.getElementById("splitMachines").value, 10) || 1;
+            const start = parseInt(document.getElementById("splitStart").value, 10) || 1;
+            const end = parseInt(document.getElementById("splitEnd").value, 10) || 1;
+            const secPerFrame = parseInt(document.getElementById("splitSeconds").value, 10) || 0;
             const totalFrames = Math.max(0, end - start + 1);
             const framesPerMachine = Math.floor(totalFrames / numMachines);
             const remainder = totalFrames % numMachines;
-
             let currentStart = start;
-            let html = '';
+            let html = "";
 
             for (let i = 0; i < numMachines; i++) {
                 if (currentStart > end) break;
 
-                let mFrames = framesPerMachine + (i < remainder ? 1 : 0);
-                if (mFrames <= 0) continue;
+                const machineFrames = framesPerMachine + (i < remainder ? 1 : 0);
+                if (machineFrames <= 0) continue;
 
-                let mEnd = currentStart + mFrames - 1;
-                let totalSecs = mFrames * secPerFrame;
-
+                const machineEnd = currentStart + machineFrames - 1;
+                const totalSecs = machineFrames * secPerFrame;
                 html += `
-                    <div class="result-item" style="animation-delay: ${i * 0.05}s">
-                        <div class="m-id">MACHINE ${i + 1}</div>
-                        <div style="text-align: right">
-                            <div class="r-range">${currentStart} — ${mEnd}</div>
-                            <div class="r-time">(${mFrames} frames • ${formatDuration(totalSecs)})</div>
+                    <div class="result-item" style="animation-delay:${i * 0.05}s">
+                        <div class="m-id">Machine ${i + 1}</div>
+                        <div style="text-align:right">
+                            <div class="r-range">${currentStart} - ${machineEnd}</div>
+                            <div class="r-time">${machineFrames} frames | ${formatDuration(totalSecs)}</div>
                         </div>
                     </div>
                 `;
-                currentStart = mEnd + 1;
+                currentStart = machineEnd + 1;
             }
 
             if (totalFrames === 0) {
-                html = '<div style="color:var(--text-secondary); opacity:0.5; font-weight:700">Invalid range</div>';
+                html = `<div class="result-item"><div class="m-id">Invalid Range</div><div class="r-time">Please check start and end frame.</div></div>`;
             }
 
-            document.getElementById('splitterResults').innerHTML = html;
+            document.getElementById("splitterResults").innerHTML = html;
         }
 
-        function renderUI(data) {
-            const list = document.getElementById('shotList');
-            if (!data) {
-                list.innerHTML = `
-                <div style="text-align:center; padding:100px; color:var(--text-secondary); opacity:0.5; font-size:18px; font-weight:700">
-                    NO ACTIVE RENDERS FOUND
-                </div>
-            `;
-                return;
+        function getStateClass(worker) {
+            if (worker.isCrashed) return "is-crashed";
+            if (worker.isStalled) return "is-stalled";
+            if (worker.isFinished) return "is-finished";
+            return "is-live";
+        }
+
+        function formatSecondsCompact(seconds) {
+            const numeric = Number(seconds);
+            if (!Number.isFinite(numeric) || numeric < 0) {
+                return "n/a";
+            }
+            if (numeric < 60) {
+                return `${Math.round(numeric)}s`;
+            }
+            return formatDuration(numeric);
+        }
+
+        function normalizeCrashDetectionStatus(value) {
+            const normalized = String(value || "").trim().toUpperCase();
+            return ["RUNNING", "STALLED", "CRASHED", "STOPPED", "NOT MONITORED", "ERROR"].includes(normalized)
+                ? normalized
+                : "";
+        }
+
+        function isCrashDetectionEnabledValue(value) {
+            return value === true || value === 1 || value === "1" || value === "true" || value === "True" || value === "yes";
+        }
+
+        function deriveShotCrashDetectionFromWorkers(workers) {
+            const list = Array.isArray(workers) ? workers : [];
+            const statuses = list
+                .map((worker) => normalizeCrashDetectionStatus(worker.crash_detection_status || worker.crashDetectionStatus || ""))
+                .filter(Boolean);
+            const enabled = list.some((worker) => isCrashDetectionEnabledValue(worker.crash_detection_enabled ?? worker.crashDetectionEnabled));
+            const priority = ["CRASHED", "STALLED", "ERROR", "RUNNING", "STOPPED", "NOT MONITORED"];
+            const status = priority.find((candidate) => statuses.includes(candidate)) || "";
+            return { status, enabled };
+        }
+
+        function crashDetectionClassNameForStatus(status) {
+            switch (status) {
+                case "RUNNING":
+                    return "is-running";
+                case "STALLED":
+                    return "is-stalled";
+                case "CRASHED":
+                    return "is-crashed";
+                case "STOPPED":
+                    return "is-stopped";
+                case "NOT MONITORED":
+                    return "is-not-monitored";
+                case "ERROR":
+                    return "is-error";
+                default:
+                    return "is-running";
+            }
+        }
+
+        function getShotCrashDetectionState(shot) {
+            const runtime = lastCrashDetectionStatus && typeof lastCrashDetectionStatus === "object" ? lastCrashDetectionStatus : {};
+            const explicitEnabled = (
+                shot && (shot.crash_detection_enabled !== undefined || shot.crashDetectionEnabled !== undefined)
+            )
+                ? isCrashDetectionEnabledValue(shot.crash_detection_enabled ?? shot.crashDetectionEnabled)
+                : null;
+            const enabled = explicitEnabled === null ? !!runtime.enabled : explicitEnabled;
+            const operationalState = String(runtime.operational_state || runtime.display_state || "").trim().toLowerCase();
+            const message = String(runtime.message || runtime.status_message || "").trim();
+            const explicitStatus = normalizeCrashDetectionStatus(
+                shot.crash_detection_status
+                || shot.crashDetectionStatus
+            );
+            let status = explicitStatus || "RUNNING";
+            let className = crashDetectionClassNameForStatus(status);
+            let title = message || "Render tracking is active for this shot.";
+
+            if (explicitStatus) {
+                if (explicitStatus === "CRASHED") {
+                    title = shot.workers.find((worker) => worker.isCrashed)?.crashReason || "Render tracking marked this shot as crashed.";
+                } else if (explicitStatus === "STALLED") {
+                    title = shot.workers.find((worker) => worker.isStalled)?.stallReason || "Render tracking marked this shot as stalled.";
+                } else if (explicitStatus === "RUNNING") {
+                    title = "Render tracking is active for this shot.";
+                } else if (explicitStatus === "STOPPED") {
+                    title = "Render tracking is stopped for this shot.";
+                } else if (explicitStatus === "NOT MONITORED") {
+                    title = "Render tracking is disabled for this shot.";
+                } else if (explicitStatus === "ERROR") {
+                    title = message || "Render tracking reported an error.";
+                }
+                return {
+                    status,
+                    className,
+                    title,
+                    badgeText: `RENDER TRACKING: ${status}`,
+                    enabled: explicitStatus !== "NOT MONITORED",
+                    watchdogPid: 0,
+                    heartbeatAgeSeconds: null
+                };
             }
 
-            const shots = {};
-            Object.keys(data).forEach((key, index) => {
-                const w = data[key];
-                // Backward compatibility mapping
-                const shotName = w.shotName || w.project_name || "Unknown Shot";
-                const workerName = w.workerName || w.machine_name || key;
-                const startF = w.startFrame !== undefined ? w.startFrame : (w.frame_range ? parseInt(w.frame_range.split('-')[0]) : 0);
-                const endF = w.endFrame !== undefined ? w.endFrame : (w.frame_range ? parseInt(w.frame_range.split('-')[1]) : 0);
-                const currentF = w.currentFrame !== undefined ? w.currentFrame : (w.current_frame || 0);
-                const globalS = w.globalStart !== undefined ? w.globalStart : (w.global_range ? parseInt(w.global_range.split('-')[0]) : startF);
-                const globalE = w.globalEnd !== undefined ? w.globalEnd : (w.global_range ? parseInt(w.global_range.split('-')[1]) : endF);
-                const hipFile = w.hipFile || w.project_name || "render.hip";
+            const heartbeatAgeSeconds = Number.isFinite(Number(shot.crash_detection_heartbeat_age_seconds))
+                ? Number(shot.crash_detection_heartbeat_age_seconds)
+                : null;
+            const latestHeartbeatLabel = heartbeatAgeSeconds === null ? "n/a" : `${formatSecondsCompact(heartbeatAgeSeconds)} ago`;
+            const watchdogPid = Number(shot.crash_detection_watchdog_pid || runtime.pid || 0) || 0;
 
-                // Progress Calculation if not provided
-                let progress = w.progress;
-                if (progress === undefined) {
-                    const total = endF - startF + 1 || 1;
-                    const done = Math.max(0, currentF - startF);
-                    progress = Math.min(100, Math.round((done / total) * 100)) || 0;
+            if (!enabled) {
+                status = "NOT MONITORED";
+                className = crashDetectionClassNameForStatus(status);
+                title = "Render tracking is disabled for this shot.";
+            } else if (shot.hasCrashed) {
+                status = "CRASHED";
+                className = crashDetectionClassNameForStatus(status);
+                title = shot.workers.find((worker) => worker.isCrashed)?.crashReason || "Render tracking detected a crashed worker.";
+            } else if (shot.hasStalled) {
+                status = "STALLED";
+                className = crashDetectionClassNameForStatus(status);
+                title = shot.workers.find((worker) => worker.isStalled)?.stallReason || "Render tracking detected a stalled worker.";
+            } else if (operationalState === "failed" || operationalState === "startup_failed") {
+                status = "ERROR";
+                className = crashDetectionClassNameForStatus(status);
+                title = message || "Render tracking reported an error.";
+            } else if (operationalState !== "active") {
+                status = "STOPPED";
+                className = crashDetectionClassNameForStatus(status);
+                title = message || "Render tracking is stopped for this shot.";
+            } else {
+                status = "RUNNING";
+                className = crashDetectionClassNameForStatus(status);
+                title = `Last tracker sync ${latestHeartbeatLabel}${watchdogPid > 0 ? ` | PID ${watchdogPid}` : ""}`;
+            }
+
+            return {
+                status,
+                className,
+                title,
+                badgeText: `RENDER TRACKING: ${status}`,
+                enabled,
+                watchdogPid,
+                heartbeatAgeSeconds
+            };
+        }
+
+        function renderShotCrashDetectionBadge(shot, baseClassName) {
+            const detectionState = getShotCrashDetectionState(shot);
+            return `
+                <span class="${baseClassName} shot-crash-badge ${detectionState.className}" title="${escapeAttr(detectionState.title)}">
+                    <span class="shot-crash-badge__dot" aria-hidden="true"></span>
+                    <span>${escapeHtml(detectionState.badgeText)}</span>
+                </span>
+            `;
+        }
+
+        function getCrashDetectionState(worker) {
+            const workerStateRaw = String(worker.workerState || worker.worker_state || "").trim().toLowerCase();
+            const staleForSeconds = Number(worker.staleForSeconds || worker.stale_for_seconds || 0);
+            if (workerStateRaw === "slow_frame") {
+                return { label: "SLOW FRAME", reason: worker.workerStateReason || "frame time exceeded expected range", className: "is-warning" };
+            }
+            if (workerStateRaw === "suspect_stale") {
+                return {
+                    label: "SUSPECT STALE",
+                    reason: worker.workerStateReason || (staleForSeconds > 0 ? `Heartbeat stale for ${Math.round(staleForSeconds)}s` : "heartbeat becoming stale"),
+                    className: "is-warning"
+                };
+            }
+
+            const detectionState = getShotCrashDetectionState({
+                hasCrashed: !!worker.isCrashed,
+                hasStalled: !!worker.isStalled,
+                workers: [worker],
+                crash_detection_status: worker.crash_detection_status || worker.crashDetectionStatus || "",
+                crash_detection_heartbeat_age_seconds: staleForSeconds > 0 ? staleForSeconds : null,
+                crash_detection_watchdog_pid: worker.crash_detection_watchdog_pid || worker.crashDetectionWatchdogPid || worker.houdini_pid || worker.houdiniPid || 0,
+            });
+            return {
+                label: detectionState.status,
+                reason: detectionState.title,
+                className: detectionState.className === "is-not-monitored" ? "is-disabled" : detectionState.className
+            };
+        }
+
+        function getWorkerMetric(worker) {
+            if (worker.isCrashed) {
+                return { top: "CRASHED", bottom: `${worker.progress}%`, stateClass: "is-crashed" };
+            }
+
+            if (worker.isStalled) {
+                return { top: "STALLED", bottom: `${worker.progress}%`, stateClass: "is-stalled" };
+            }
+
+            if (worker.isFinished) {
+                return { top: "DONE", bottom: "100%", stateClass: "is-finished" };
+            }
+
+            return {
+                top: worker.eta || "IN PROGRESS",
+                bottom: `${worker.progress}%`,
+                stateClass: "is-live"
+            };
+        }
+
+        function hasNumericMetric(value) {
+            const n = Number(value);
+            return Number.isFinite(n);
+        }
+
+        function formatMetricNumber(value, decimals = 0) {
+            if (!hasNumericMetric(value)) return "N/A";
+            return Number(value).toFixed(decimals);
+        }
+
+        function formatGpuUsage(value) {
+            return hasNumericMetric(value) ? `${Math.round(Number(value))}%` : "N/A";
+        }
+
+        function formatGpuTemperature(value) {
+            return hasNumericMetric(value) ? `${Math.round(Number(value))}°C` : "N/A";
+        }
+
+        function formatGpuVram(worker) {
+            const used = worker.vramUsedMb ?? worker.vram_used_mb;
+            const total = worker.vramTotalMb ?? worker.vram_total_mb;
+            const percent = worker.vramPercent ?? worker.vram_percent;
+            if (!hasNumericMetric(used) || !hasNumericMetric(total)) {
+                return "N/A";
+            }
+            const usedMb = Math.round(Number(used));
+            const totalMb = Math.round(Number(total));
+            if (hasNumericMetric(percent)) {
+                return `${usedMb} / ${totalMb} MB (${Math.round(Number(percent))}%)`;
+            }
+            return `${usedMb} / ${totalMb} MB`;
+        }
+
+        function humanizeWatchdogReason(reasonCode, eventType = "crash") {
+            const code = String(reasonCode || "").trim().toLowerCase();
+            const knownReasons = {
+                houdini_process_missing: "Houdini process is no longer running on the worker machine.",
+                heartbeat_timeout: "The watchdog stopped receiving heartbeat updates from Houdini.",
+                heartbeat_stall: "Heartbeat updates stopped for too long while the job was still active.",
+                dynamic_stall_timeout: "Houdini is still alive, but no new render progress was detected for too long.",
+                dynamic_suspect_timeout: "Heartbeat updates are slower than expected and the job may be becoming unstable.",
+                long_frame_with_live_pid: "Houdini is still running, but the current frame is taking unusually long.",
+                heartbeat_recent_pid_unconfirmed: "A recent heartbeat was seen, but the Houdini process could not be confirmed yet.",
+                watchdog_crash_persisted: "The job was already marked as crashed in the watchdog state.",
+                watchdog_stall_persisted: "The job was already marked as stalled in the watchdog state.",
+                monitoring_stopped: "Crash monitoring was stopped, so the worker is no longer being watched.",
+                manual_stop: "Crash monitoring was stopped manually."
+            };
+            if (knownReasons[code]) {
+                return knownReasons[code];
+            }
+            if (code) {
+                const label = code.replace(/_/g, " ").trim();
+                return label.charAt(0).toUpperCase() + label.slice(1) + ".";
+            }
+            return eventType === "stall"
+                ? "The render stopped making progress for longer than the allowed watchdog threshold."
+                : "The render process stopped unexpectedly and the watchdog marked it as crashed.";
+        }
+
+        function formatDetectionStatusLabel(value) {
+            const code = String(value || "").trim().toUpperCase();
+            const labels = {
+                RUNNING: "Watchdog is running normally.",
+                STALLED: "Watchdog detected a stall state.",
+                CRASHED: "Watchdog detected a crash state.",
+                STOPPED: "Watchdog monitoring is currently stopped.",
+                "NOT MONITORED": "This worker is not currently monitored by the watchdog.",
+                ERROR: "Watchdog monitoring reported an internal error."
+            };
+            return labels[code] || (code ? `${code.replace(/_/g, " ")}` : "N/A");
+        }
+
+        function renderWorkerDetails(worker) {
+            const detectionState = getCrashDetectionState(worker);
+            const runtimeRows = [
+                ["Node Path", worker.node_path || "N/A"],
+                ["Output Path", worker.output_dir || worker.output_path || "N/A"],
+                ["Last Active", formatReadableDateTime(worker.lastHeartbeatTs)],
+                ["Render Tracking", detectionState.label],
+                ["Watchdog Summary", formatDetectionStatusLabel(worker.crashDetectionStatus || worker.crash_detection_status)],
+                [
+                    "Status",
+                    worker.isCrashed
+                        ? "Crash Detected"
+                        : worker.isStalled
+                            ? "Stall Detected"
+                            : worker.isFinished
+                                ? "Finished"
+                                : (worker.workerState || worker.status || "running").replace(/_/g, " ")
+                ]
+            ];
+
+            if (worker.isCrashed) {
+                runtimeRows.push(["What Happened", humanizeWatchdogReason(worker.crashReason || "houdini_process_missing", "crash")]);
+                runtimeRows.push(["Technical Reason", worker.crashReason || "houdini_process_missing"]);
+                runtimeRows.push(["Crashed At", worker.crashedAt || "N/A"]);
+            } else if (worker.isStalled) {
+                runtimeRows.push(["What Happened", humanizeWatchdogReason(worker.stallReason || "heartbeat_stall", "stall")]);
+                runtimeRows.push(["Technical Reason", worker.stallReason || "heartbeat_stall"]);
+                runtimeRows.push(["Stalled At", worker.stalledAt || "N/A"]);
+            } else {
+                runtimeRows.push(["Current Frame", String(worker.currentFrame)]);
+                runtimeRows.push(["Last Frame Seen", String(worker.lastFrameSeen)]);
+            }
+            runtimeRows.push(["Detection Reason", detectionState.reason || "N/A"]);
+            if (worker.staleForSeconds || worker.stale_for_seconds) {
+                runtimeRows.push(["Stale For", `${Math.round(Number(worker.staleForSeconds || worker.stale_for_seconds || 0))}s`]);
+            }
+
+            const specRows = [
+                ["CPU", worker.cpu || "Unknown"],
+                ["GPU", worker.gpuName || worker.gpu || "N/A"],
+                ["GPU Usage", formatGpuUsage(worker.gpuUtilPercent ?? worker.gpu_util_percent)],
+                ["VRAM", formatGpuVram(worker)],
+                ["Temp", formatGpuTemperature(worker.gpuTemperatureC ?? worker.temperature_c)],
+                ["RAM", worker.ram || "Unknown"],
+                ["Hip File", worker.hipFile || "N/A"]
+            ];
+
+            return `
+                <div class="details-grid">
+                    <div class="detail-card">
+                        <div class="detail-card-title">Machine Specs</div>
+                        <div class="detail-list">
+                            ${specRows.map(([label, value]) => `
+                                <div class="detail-line">
+                                    <span>${escapeHtml(label)}</span>
+                                    <strong>${escapeHtml(value)}</strong>
+                                </div>
+                            `).join("")}
+                        </div>
+                    </div>
+
+                    <div class="detail-card">
+                        <div class="detail-card-title">Runtime Status</div>
+                        <div class="detail-list">
+                            ${runtimeRows.map(([label, value]) => `
+                                <div class="detail-line">
+                                    <span>${escapeHtml(label)}</span>
+                                    <strong>${escapeHtml(value)}</strong>
+                                </div>
+                            `).join("")}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getShotStatusKey(shot) {
+            if (shot.hasCrashed) return "crashed";
+            if (shot.hasStalled) return "stalled";
+            if (shot.isFinished) return "finished";
+            return "rendering";
+        }
+
+        function getShotStatusLabel(statusKey) {
+            switch (statusKey) {
+                case "crashed":
+                    return "Crashed";
+                case "stalled":
+                    return "Stalled";
+                case "finished":
+                    return "Finished";
+                default:
+                    return "Rendering";
+            }
+        }
+
+        function getShotAccentColor(shot) {
+            if (shot.statusKey === "crashed") return "#ff7b8a";
+            if (shot.statusKey === "stalled") return "#ffce7e";
+            return shot.isCache ? "#8fe6ff" : "#58ff8a";
+        }
+
+        function getShotGlowColor(shot) {
+            if (shot.statusKey === "crashed") return "#ff6b86";
+            if (shot.statusKey === "stalled") return "#ffba63";
+            if (shot.statusKey === "finished") return "#51ff84";
+            return "transparent";
+        }
+
+        function getShotPriority(shot) {
+            if (shot.statusKey === "crashed") return 0;
+            if (shot.statusKey === "stalled") return 1;
+            if (shot.statusKey === "rendering" && !shot.isCache) return 2;
+            if (shot.statusKey === "rendering" && shot.isCache) return 3;
+            if (!shot.isCache) return 4;
+            return 5;
+        }
+
+        function getShotSubtitle(shot) {
+            if (shot.statusKey === "crashed") {
+                return `${shot.crashedWorkers} ${pluralize(shot.crashedWorkers, "worker")} lost during ${shot.modeLabel.toLowerCase()}.`;
+            }
+
+            if (shot.statusKey === "stalled") {
+                return `${shot.stalledWorkers} ${pluralize(shot.stalledWorkers, "worker")} waiting on heartbeat recovery.`;
+            }
+
+            if (shot.statusKey === "finished") {
+                return `All ${shot.workerCount} ${pluralize(shot.workerCount, "worker")} completed this ${shot.modeLabel.toLowerCase()} shot.`;
+            }
+
+            const etaText = shot.etaSummary && shot.etaSummary !== "Live"
+                ? ` | ETA ${shot.etaSummary}`
+                : "";
+            return `Live ${shot.modeLabel.toLowerCase()} across ${shot.workerCount} ${pluralize(shot.workerCount, "worker")}${etaText}`;
+        }
+
+        function matchesShotFilter(shot, filterId) {
+            switch (filterId) {
+                case "rendering":
+                    return shot.statusKey === "rendering";
+                case "stalled":
+                    return shot.hasStalled;
+                case "crashed":
+                    return shot.hasCrashed;
+                case "cache":
+                    return shot.isCache;
+                case "render":
+                    return !shot.isCache;
+                default:
+                    return true;
+            }
+        }
+
+        function getOverviewCounts(shots) {
+            return {
+                all: shots.length,
+                rendering: shots.filter((shot) => shot.statusKey === "rendering").length,
+                stalled: shots.filter((shot) => shot.hasStalled).length,
+                crashed: shots.filter((shot) => shot.hasCrashed).length,
+                cache: shots.filter((shot) => shot.isCache).length,
+                render: shots.filter((shot) => !shot.isCache).length,
+                active: shots.filter((shot) => shot.isActive).length
+            };
+        }
+
+        function parseToSeconds(eta) {
+            if (eta === null || eta === undefined) return null;
+            if (typeof eta === "number") return eta;
+
+            const cleaned = String(eta).trim().toUpperCase();
+            if (!cleaned || cleaned === "N/A" || cleaned === "DONE" || cleaned === "COMPLETE") return null;
+
+            const numeric = Number(cleaned);
+            if (Number.isFinite(numeric)) {
+                return (numeric > 3153600000) ? numeric / 1000 : numeric;
+            }
+
+            let total = 0;
+            let found = false;
+            const hMatch = cleaned.match(/(\d+)\s*H/);
+            const mMatch = cleaned.match(/(\d+)\s*M/);
+            const sMatch = cleaned.match(/(\d+)\s*S/);
+
+            if (hMatch) { total += parseInt(hMatch[1], 10) * 3600; found = true; }
+            if (mMatch) { total += parseInt(mMatch[1], 10) * 60; found = true; }
+            if (sMatch) { total += parseInt(sMatch[1], 10); found = true; }
+
+            if (!found) {
+                const parts = cleaned.split(":").map(Number);
+                if (parts.length === 3 && !parts.some(isNaN)) {
+                    total = parts[0] * 3600 + parts[1] * 60 + parts[2];
+                    found = true;
+                } else if (parts.length === 2 && !parts.some(isNaN)) {
+                    total = parts[0] * 60 + parts[1];
+                    found = true;
                 }
-                if (w.status === 'Finished') progress = 100;
+            }
+
+            return found ? total : null;
+        }
+
+        function enrichShot(shot) {
+            const weightedFrames = shot.workers.reduce((sum, worker) => sum + Math.max(1, worker.endFrame - worker.startFrame + 1), 0);
+            const weightedProgress = weightedFrames
+                ? shot.workers.reduce((sum, worker) => sum + (worker.progress * Math.max(1, worker.endFrame - worker.startFrame + 1)), 0) / weightedFrames
+                : 0;
+
+            const liveWorkers = shot.workers.filter((worker) => !worker.isFinished && !worker.isCrashed && !worker.isStalled);
+            const finishedWorkers = shot.workers.filter((worker) => worker.isFinished);
+            const crashedWorkers = shot.workers.filter((worker) => worker.isCrashed);
+            const stalledWorkers = shot.workers.filter((worker) => worker.isStalled);
+            const isFinished = shot.workers.length > 0 && shot.workers.every((worker) => worker.isFinished);
+            const statusKey = getShotStatusKey({ ...shot, isFinished });
+            const accent = getShotAccentColor({ ...shot, statusKey });
+            const glowColor = getShotGlowColor({ ...shot, statusKey });
+
+            const latestActivity = shot.workers
+                .map((worker) => parseTimestampToDate(worker.lastHeartbeatTs))
+                .filter(Boolean)
+                .sort((a, b) => b.getTime() - a.getTime())[0];
+
+            const etaWorker = liveWorkers.find((worker) => String(worker.eta || "").trim());
+            const alertSummary = crashedWorkers.length
+                ? `${crashedWorkers.length} ${pluralize(crashedWorkers.length, "crash alert")}`
+                : (stalledWorkers.length
+                    ? `${stalledWorkers.length} ${pluralize(stalledWorkers.length, "stall alert")}`
+                    : (isFinished
+                        ? "All workers complete"
+                        : `${liveWorkers.length} ${pluralize(liveWorkers.length, "worker")} active`));
+
+            const latestHeartbeatTs = latestActivity ? (latestActivity.getTime() / 1000) : null;
+            const heartbeatAgeSeconds = latestActivity ? Math.max(0, (Date.now() - latestActivity.getTime()) / 1000) : null;
+            const workerDetection = deriveShotCrashDetectionFromWorkers(shot.workers);
+            const crashDetectionState = getShotCrashDetectionState({
+                ...shot,
+                hasCrashed: crashedWorkers.length > 0,
+                hasStalled: stalledWorkers.length > 0,
+                workers: shot.workers,
+                crash_detection_status: workerDetection.status || shot.crash_detection_status || shot.crashDetectionStatus || "",
+                crashDetectionStatus: workerDetection.status || shot.crash_detection_status || shot.crashDetectionStatus || "",
+                crash_detection_enabled: workerDetection.enabled || shot.crash_detection_enabled || shot.crashDetectionEnabled || false,
+                crashDetectionEnabled: workerDetection.enabled || shot.crash_detection_enabled || shot.crashDetectionEnabled || false,
+                crash_detection_last_heartbeat_at: latestHeartbeatTs,
+                crash_detection_heartbeat_age_seconds: heartbeatAgeSeconds,
+                crash_detection_watchdog_pid: Number(lastCrashDetectionStatus?.pid || 0) || 0,
+            });
+
+            return {
+                ...shot,
+                workerCount: shot.workers.length,
+                liveWorkers: liveWorkers.length,
+                finishedWorkers: finishedWorkers.length,
+                crashedWorkers: crashedWorkers.length,
+                stalledWorkers: stalledWorkers.length,
+                isFinished,
+                statusKey,
+                statusLabel: getShotStatusLabel(statusKey),
+                isActive: statusKey !== "finished",
+                progress: clamp(Math.round(isFinished ? 100 : weightedProgress), 0, 100),
+                frameLabel: `${shot.gStart}-${shot.gEnd}`,
+                modeLabel: shot.isCache ? "CACHE" : "RENDER",
+                accent,
+                accentGlow: hexToRgba(glowColor, 0.34),
+                softAccent: hexToRgba(accent, 0.12),
+                priority: getShotPriority({ ...shot, statusKey }),
+                latestActivityLabel: latestActivity ? readableDateTimeFormatter.format(latestActivity) : "N/A",
+                estimatedFinishLabel: (() => {
+                    const maxEtaSeconds = liveWorkers.length > 0
+                        ? Math.max(...liveWorkers.map(w => parseToSeconds(w.eta)).filter(n => n !== null), 0)
+                        : 0;
+                    if (maxEtaSeconds > 0) {
+                        const finishDate = new Date(Date.now() + maxEtaSeconds * 1000);
+                        return readableTimeFormatter.format(finishDate);
+                    }
+                    if (isFinished) {
+                        return latestActivity ? readableTimeFormatter.format(latestActivity) : "Done";
+                    }
+                    return "N/A";
+                })(),
+                etaSummary: etaWorker ? etaWorker.eta : (isFinished ? "Complete" : statusKey === "crashed" ? "Needs attention" : statusKey === "stalled" ? "Recovery pending" : "Live"),
+                alertSummary,
+                crash_detection_status: crashDetectionState.status,
+                crashDetectionStatus: crashDetectionState.status,
+                crash_detection_enabled: crashDetectionState.enabled,
+                crashDetectionEnabled: crashDetectionState.enabled,
+                crash_detection_last_heartbeat_at: latestHeartbeatTs,
+                crashDetectionLastHeartbeatAt: latestHeartbeatTs,
+                crash_detection_heartbeat_age_seconds: heartbeatAgeSeconds,
+                crashDetectionHeartbeatAgeSeconds: heartbeatAgeSeconds,
+                crash_detection_watchdog_pid: crashDetectionState.watchdogPid,
+                crashDetectionWatchdogPid: crashDetectionState.watchdogPid,
+                crashDetectionBadgeClass: crashDetectionState.className,
+                crashDetectionBadgeTitle: crashDetectionState.title,
+                crashDetectionBadgeText: crashDetectionState.badgeText
+            };
+        }
+
+        function buildShotCollection(data) {
+            const shots = {};
+            const isCacheFlag = (value) => value === true || value === 1 || value === "1" || value === "true" || value === "True";
+            const isBoolTrue = (value) => value === true || value === 1 || value === "1" || value === "true" || value === "True" || value === "yes";
+            const toNum = (value, fallback = 0) => {
+                const n = Number(value);
+                return Number.isFinite(n) ? n : fallback;
+            };
+
+            Object.keys(data).forEach((key, index) => {
+                const worker = data[key] || {};
+                const shotName = worker.shotName || worker.project_name || key || "Unknown Shot";
+                const workerName = worker.workerName || key;
+                const startFrame = toNum(worker.startFrame, 0);
+                const endFrame = toNum(worker.endFrame, 0);
+                const currentFrame = toNum(worker.currentFrame, 0);
+                const globalStart = worker.globalStart !== undefined ? toNum(worker.globalStart, startFrame) : startFrame;
+                const globalEnd = worker.globalEnd !== undefined ? toNum(worker.globalEnd, endFrame) : endFrame;
+                const hipFile = worker.hipFile || "render.hip";
+                const crashStatus = normalizeCrashDetectionStatus(worker.crash_detection_status || worker.crashDetectionStatus || "");
+                const statusRaw = String(worker.status || "").trim().toLowerCase();
+                const alertStateRaw = String(worker.alert_state || worker.alertState || "").trim().toLowerCase();
+                const jobModeRaw = String(worker.job_mode || "").trim().toLowerCase();
+                const workerStateRaw = String(worker.worker_state || worker.workerState || "").trim().toLowerCase();
+                const crashDetected = isBoolTrue(worker.crash_detected) || isBoolTrue(worker.crashDetected) || crashStatus === "CRASHED";
+                const stallDetected = isBoolTrue(worker.stall_detected) || isBoolTrue(worker.stallDetected) || crashStatus === "STALLED";
+                const isCrashed = statusRaw === "crashed" || alertStateRaw === "crash" || crashDetected;
+                const isStalled = !isCrashed && (statusRaw === "stalled" || alertStateRaw === "stall" || stallDetected);
+                const isFinished = !isCrashed && !isStalled && (statusRaw === "finished" || statusRaw === "done");
+                const crashReason = worker.crash_reason || worker.crashReason || "";
+                const stallReason = worker.stall_reason || worker.stallReason || "";
+                const lastHeartbeatTs = worker.last_heartbeat_ts || worker.lastHeartbeatTs || worker.updated_at || "";
+                const crashedAt = worker.crashed_at || worker.crashedAt || "";
+                const stalledAt = worker.stalled_at || worker.stalledAt || "";
+                const lastFrameSeen = worker.last_frame_seen !== undefined
+                    ? toNum(worker.last_frame_seen, currentFrame)
+                    : (worker.lastFrameSeen !== undefined ? toNum(worker.lastFrameSeen, currentFrame) : currentFrame);
+                const effectiveCurrent = isCrashed || isStalled ? lastFrameSeen : currentFrame;
+                const totalFrames = Math.max(1, endFrame - startFrame + 1);
+                const completedFrames = clamp(effectiveCurrent - startFrame + 1, 0, totalFrames);
+
+                let progress = worker.progress;
+                if (progress === undefined) {
+                    progress = Math.round((completedFrames / totalFrames) * 100);
+                }
+
+                progress = clamp(toNum(progress, 0), 0, 100);
+                if (isFinished) progress = 100;
+
+                const workerColor = isCrashed
+                    ? "#ff7b8a"
+                    : (isStalled ? "#ffce7e" : colors[index % colors.length]);
 
                 if (!shots[shotName]) {
-                    // Nhận diện Cache dựa trên flag is_cache từ Python hoặc fallback sang bộ lọc text
-                    const isCache = w.is_cache === true || shotName.includes("Shot Cache") || (w.node_path && w.node_path.toLowerCase().includes("cache"));
+                    const isCache = (jobModeRaw === "cache") || isCacheFlag(worker.is_cache) || shotName.toLowerCase().includes("cache");
                     shots[shotName] = {
                         name: shotName,
-                        isCache: isCache,
-                        gStart: globalS,
-                        gEnd: globalE,
-                        workers: []
+                        isCache,
+                        gStart: globalStart,
+                        gEnd: globalEnd,
+                        workers: [],
+                        keys: [],
+                        hasCrashed: false,
+                        hasStalled: false
                     };
+                } else {
+                    shots[shotName].gStart = Math.min(shots[shotName].gStart, globalStart, startFrame);
+                    shots[shotName].gEnd = Math.max(shots[shotName].gEnd, globalEnd, endFrame);
                 }
+
+                if (isCrashed) shots[shotName].hasCrashed = true;
+                if (isStalled) shots[shotName].hasStalled = true;
+
+                shots[shotName].keys.push(key);
+                const gpuName = worker.gpuName || worker.gpu_name || worker.gpu || "";
+                const gpuUtilPercent = worker.gpuUtilPercent ?? worker.gpu_util_percent ?? null;
+                const vramUsedMb = worker.vramUsedMb ?? worker.vram_used_mb ?? null;
+                const vramTotalMb = worker.vramTotalMb ?? worker.vram_total_mb ?? null;
+                const vramPercent = worker.vramPercent ?? worker.vram_percent ?? null;
+                const gpuTemperatureC = worker.gpuTemperatureC ?? worker.temperature_c ?? null;
+                const gpuSampledAt = worker.gpuSampledAt ?? worker.gpu_sampled_at ?? null;
+                const gpuTelemetryState = worker.gpuTelemetryState || worker.gpu_telemetry_state || "unavailable";
+                const gpuStatusMessage = worker.gpuStatusMessage || worker.gpu_status_message || "";
                 shots[shotName].workers.push({
-                    ...w,
+                    ...worker,
+                    renderKey: key,
                     workerName,
-                    startFrame: startF,
-                    endFrame: endF,
-                    currentFrame: currentF,
+                    startFrame,
+                    endFrame,
+                    currentFrame,
                     hipFile,
-                    output_dir: w.output_dir || "N/A",
                     progress,
-                    eta: w.eta || "CALCULATING...",
-                    color: colors[index % colors.length]
+                    color: workerColor,
+                    glow: hexToRgba(workerColor, 0.34),
+                    softGlow: hexToRgba(workerColor, 0.18),
+                    isCrashed,
+                    isStalled,
+                    isFinished,
+                    workerState: workerStateRaw || (isFinished ? "finished" : (isStalled ? "stalled" : (isCrashed ? "crashed" : "running"))),
+                    workerStateReason: worker.worker_state_reason || worker.workerStateReason || "",
+                    crash_detection_status: crashStatus || worker.crash_detection_status || worker.crashDetectionStatus || "",
+                    crashReason,
+                    stallReason,
+                    staleForSeconds: toNum(worker.stale_for_seconds ?? worker.staleForSeconds, 0),
+                    lastHeartbeatTs,
+                    lastFrameSeen,
+                    crashedAt,
+                    stalledAt,
+                    gpuName,
+                    gpuUtilPercent,
+                    vramUsedMb,
+                    vramTotalMb,
+                    vramPercent,
+                    gpuTemperatureC,
+                    gpuSampledAt,
+                    gpuTelemetryState,
+                    gpuStatusMessage
                 });
             });
 
-            list.innerHTML = '';
-            Object.values(shots).forEach(shot => {
-                const workersHtml = shot.workers.map(w => `
-                <div class="worker-item-container">
-                    <div class="worker-row" style="border-left: 5px solid ${w.color}" onclick="this.parentElement.classList.toggle('expanded')">
-                        <div class="input-group">
-                            <label>Worker ID</label>
-                            <div class="value-display">${w.workerName}</div>
-                        </div>
-                        <div class="input-group">
-                            <label>Start (ROP)</label>
-                            <div class="value-display">${w.startFrame}</div>
-                        </div>
-                        <div class="input-group">
-                            <label>End (ROP)</label>
-                            <div class="value-display">${w.endFrame}</div>
-                        </div>
-                        <div class="input-group">
-                            <label>Current</label>
-                            <div class="value-display" style="border-color:${w.color}; color:${w.color}; text-shadow: 0 0 10px ${w.color}55;">${w.currentFrame}</div>
-                        </div>
-                        <div class="input-group">
-                            <label>Hip File / Node</label>
-                            <div class="value-display">
-                                <span style="font-family:monospace; font-size:12px; opacity:0.8; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${w.hipFile}</span>
-                                <div class="copy-icon-btn" title="Copy Output Folder" onclick="event.stopPropagation(); copyToClipboard('${w.output_dir || 'N/A'}')">
-                                    <svg viewBox="0 0 24 24"><path d="M16 1H4C2.9 1 2 1.9 2 3V17H4V3H16V1ZM19 5H8C6.9 5 6 5.9 6 7V21C6 22.1 6.9 23 8 23H19C20.1 23 21 22.1 21 21V7C21 5.9 20.1 5 19 5ZM19 21H8V7H19V21Z"/></svg>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="eta-display">
-                            <span class="eta-time">${w.eta}</span>
-                            <span class="prog-percent" style="color:${w.color}">${w.progress}%</span>
-                        </div>
-                    </div>
-                    
-                    <div class="worker-details">
-                        <div class="code-console">
-                            <div class="console-header">
-                                <div class="console-dots">
-                                    <span class="dot red"></span>
-                                    <span class="dot yellow"></span>
-                                    <span class="dot green"></span>
-                                </div>
-                                <div class="console-title">${w.workerName}_specs.json</div>
-                            </div>
-                            <div class="console-body">
-                                <div class="code-line"><span class="c-key">"cpu_model"</span>: <span class="c-string">"${w.cpu || 'Unknown'}"</span>,</div>
-                                <div class="code-line"><span class="c-key">"gpu_graphics"</span>: <span class="c-string">"${w.gpu || 'Unknown'}"</span>,</div>
-                                <div class="code-line"><span class="c-key">"total_ram"</span>: <span class="c-string">"${w.ram || 'Unknown'}"</span>,</div>
-                                <div class="code-line"><span class="c-key">"output_dir"</span>: <span class="c-string">"${w.output_dir || 'N/A'}"</span>,</div>
-                                <div class="code-line"><span class="c-key">"output_file"</span>: <span class="c-string">"${w.output_path || 'N/A'}"</span>,</div>
-                                <div class="code-line"><span class="c-key">"node_path"</span>: <span class="c-string">"${w.node_path || 'N/A'}"</span></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                `).join('');
+            const shotArray = Object.values(shots).map((shot) => {
+                shot.workers.sort((a, b) => {
+                    if (a.startFrame !== b.startFrame) return a.startFrame - b.startFrame;
+                    if (a.endFrame !== b.endFrame) return a.endFrame - b.endFrame;
+                    return String(a.workerName).localeCompare(String(b.workerName));
+                });
+                return enrichShot(shot);
+            });
 
-                const shotEl = document.createElement('div');
-                shotEl.className = 'shot-container';
-                shotEl.innerHTML = `
-                <div class="shot-header">
-                    <div class="input-group" style="flex:2">
-                        <label>${shot.isCache ? 'Cache Shot ($OS)' : 'Active Shot ($OS)'}</label>
-                        <div class="shot-title ${shot.isCache ? 'cache-mode' : ''}">${shot.name}</div>
+            shotArray.sort((a, b) => {
+                if (a.priority !== b.priority) return a.priority - b.priority;
+                if (b.liveWorkers !== a.liveWorkers) return b.liveWorkers - a.liveWorkers;
+                if (b.workerCount !== a.workerCount) return b.workerCount - a.workerCount;
+                return String(a.name).localeCompare(String(b.name));
+            });
+
+            shotDeleteMap = {};
+            shotArray.forEach((shot, index) => {
+                shot.id = `shot_${index}`;
+                shotDeleteMap[shot.id] = { name: shot.name, keys: shot.keys || [] };
+            });
+
+            return shotArray;
+        }
+
+        function buildMachineRows(shots) {
+            const groups = new Map();
+
+            shots.forEach((shot) => {
+                shot.workers.forEach((worker, index) => {
+                    const machineName = safeTableValue(
+                        worker.machineName
+                        || worker.machine_name
+                        || worker.hostName
+                        || worker.host_name
+                        || worker.hostname
+                        || worker.workerName
+                    );
+                    const workerName = safeTableValue(worker.workerName);
+                    const groupKey = workerName || machineName || `worker_${index}`;
+                    const shotName = safeTableValue(worker.shotName || shot.name);
+                    const currentFrame = formatTableFrame(worker.isCrashed || worker.isStalled ? worker.lastFrameSeen : worker.currentFrame);
+                    const startFrame = formatTableFrame(worker.startFrame);
+                    const endFrame = formatTableFrame(worker.endFrame);
+                    const progress = formatTableProgress(worker.progress);
+                    const eta = safeTableValue(worker.eta, "-");
+                    const detectionReason = safeTableValue(getCrashDetectionState(worker).reason, "-");
+                    const lastUpdate = safeTableValue(formatReadableDateTime(worker.lastHeartbeatTs || worker.updated_at), "-");
+                    const sortTs = parseTimestampToDate(worker.lastHeartbeatTs || worker.updated_at)?.getTime() || 0;
+
+                    if (!groups.has(groupKey)) {
+                        groups.set(groupKey, {
+                            id: groupKey,
+                            workerName,
+                            machineName,
+                            accent: worker.color || "#51ff84",
+                            accentSoft: worker.softGlow || "rgba(81, 255, 132, 0.18)",
+                            sortTs,
+                            rows: []
+                        });
+                    }
+
+                    const group = groups.get(groupKey);
+                    group.sortTs = Math.max(group.sortTs, sortTs);
+                    group.rows.push({
+                        id: `${worker.renderKey || worker.workerName || shot.name}_${index}`,
+                        shotName,
+                        currentFrame,
+                        startFrame,
+                        endFrame,
+                        progress,
+                        eta,
+                        lastUpdate,
+                        detectionReason,
+                        sortTs
+                    });
+                });
+            });
+
+            return Array.from(groups.values())
+                .map((group) => ({
+                    ...group,
+                    rows: group.rows.sort((a, b) => {
+                        if (b.sortTs !== a.sortTs) return b.sortTs - a.sortTs;
+                        return String(a.shotName).localeCompare(String(b.shotName));
+                    })
+                }))
+                .sort((a, b) => {
+                    if (b.sortTs !== a.sortTs) return b.sortTs - a.sortTs;
+                    const machineCompare = String(a.machineName).localeCompare(String(b.machineName));
+                    if (machineCompare !== 0) return machineCompare;
+                    return String(a.workerName).localeCompare(String(b.workerName));
+                });
+        }
+
+        function renderShotTimeline(shot) {
+            return shot.workers.map((worker) => {
+                const totalGlobal = Math.max(1, shot.gEnd - shot.gStart + 1);
+                const offset = clamp(((worker.startFrame - shot.gStart) / totalGlobal) * 100, 0, 100);
+                const width = clamp(((worker.endFrame - worker.startFrame + 1) / totalGlobal) * 100, 2, 100);
+                const fillWidth = worker.isFinished ? 100 : clamp(worker.progress, 0, 100);
+                const stateClass = getStateClass(worker);
+
+                return `
+                    <div class="timeline-segment ${stateClass}" style="left:${offset}%; width:${width}%; --worker-color:${worker.color}; --worker-glow:${worker.glow};">
+                        <div class="timeline-segment-fill" style="width:${fillWidth}%;"></div>
+                        <div class="timeline-worker-label">${escapeHtml(worker.workerName)}</div>
                     </div>
-                    <div class="input-group playbar-group">
-                        <label>Global Playbar</label>
-                        <div class="global-range">${shot.gStart} &mdash; ${shot.gEnd}</div>
-                    </div>
-                </div>
-                <div class="timeline-wrapper">
-                    <div class="timeline-labels">
-                        <span>${shot.gStart}</span>
-                        <span style="opacity:0.4">GLOBAL TIMELINE PROGRESS</span>
-                        <span>${shot.gEnd}</span>
-                    </div>
-                    <div class="timeline-box">
-                        ${shot.workers.map(w => {
-                    const totalGlobal = shot.gEnd - shot.gStart + 1 || 1;
-                    const offset = ((w.startFrame - shot.gStart) / totalGlobal) * 100;
-                    const width = ((w.endFrame - w.startFrame + 1) / totalGlobal) * 100;
-                    return `
-                                <div class="worker-block" style="left:${offset}%; width:${width}%;">
-                                    <div class="worker-fill" style="width:${w.progress}%; background-color:${w.color}; box-shadow: 0 0 15px ${w.color}66;"></div>
-                                    <div class="worker-label-min">${w.workerName}</div>
+                `;
+            }).join("");
+        }
+
+        function renderShotWorkers(shot) {
+            return shot.workers.map((worker) => {
+                const stateClass = getStateClass(worker);
+                const metric = getWorkerMetric(worker);
+                const currentDisplay = worker.isCrashed || worker.isStalled ? worker.lastFrameSeen : worker.currentFrame;
+                const outputPath = worker.output_dir || worker.output_path || "N/A";
+                const isExpanded = expandedWorkerKeys.has(worker.renderKey);
+                const detectionState = getCrashDetectionState(worker);
+
+                return `
+                    <div class="worker-item-container ${isExpanded ? "expanded" : ""}" data-worker-key="${escapeAttr(worker.renderKey)}" style="--worker-color:${worker.color}; --worker-glow:${worker.glow}; --worker-soft-glow:${worker.softGlow};">
+                        <div class="worker-row ${stateClass}" onclick="toggleWorkerDetails(this)">
+                            <div class="worker-lane" aria-hidden="true">
+                                <div class="worker-lane-track"></div>
+                                <div class="worker-accent"></div>
+                            </div>
+
+                            <div class="worker-fields">
+                                <div class="worker-field field-worker">
+                                    <div class="field-label">Worker ID</div>
+                                    <div class="value-display worker-name">
+                                        ${escapeHtml(worker.workerName)}
+                                        <span class="worker-detection-pill ${escapeAttr(detectionState.className)}">${escapeHtml(detectionState.label)}</span>
+                                    </div>
                                 </div>
-                            `;
-                }).join('')}
+
+                                <div class="worker-field field-frame-summary">
+                                    <div class="worker-frame-grid">
+                                        <div class="frame-stat frame-stat-current">
+                                            <div class="frame-stat-label">Current</div>
+                                            <div class="frame-stat-value">${escapeHtml(currentDisplay)}</div>
+                                        </div>
+                                        <div class="frame-stat">
+                                            <div class="frame-stat-label">Start Frame</div>
+                                            <div class="frame-stat-value">${escapeHtml(worker.startFrame)}</div>
+                                        </div>
+                                        <div class="frame-stat">
+                                            <div class="frame-stat-label">End Frame</div>
+                                            <div class="frame-stat-value">${escapeHtml(worker.endFrame)}</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="worker-field field-file">
+                                    <div class="field-label">Hip File / Node</div>
+                                    <div class="value-display file-display">
+                                        <span class="file-path">${escapeHtml(worker.hipFile)}</span>
+                                        <button
+                                            class="copy-icon-btn"
+                                            type="button"
+                                            title="Copy Output Folder"
+                                            data-copy-text="${escapeAttr(outputPath)}"
+                                            onclick="event.stopPropagation(); copyToClipboard(this.dataset.copyText)">
+                                            <svg viewBox="0 0 24 24">
+                                                <path d="M16 1H4C2.9 1 2 1.9 2 3V17H4V3H16V1ZM19 5H8C6.9 5 6 5.9 6 7V21C6 22.1 6.9 23 8 23H19C20.1 23 21 22.1 21 21V7C21 5.9 20.1 5 19 5ZM19 21H8V7H19V21Z"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="metric-box ${metric.stateClass}">
+                                <div class="metric-top">${escapeHtml(metric.top)}</div>
+                                <div class="metric-bottom">${escapeHtml(metric.bottom)}</div>
+                            </div>
+                        </div>
+
+                        <div class="worker-details">
+                            ${renderWorkerDetails(worker)}
+                        </div>
                     </div>
-                </div>
-                <div class="worker-grid">${workersHtml}</div>
+                `;
+            }).join("");
+        }
+
+        function renderShotDetailContent(shot, shotId, options = {}) {
+            const { panelMode = false, showDelete = true } = options;
+            const detailLabel = panelMode
+                ? (shot.isCache ? "Cache Detail" : "Shot Detail")
+                : (shot.isCache ? "Active Cache ($OS)" : "Active Shot ($OS)");
+
+            return `
+                <section class="shot-shell ${shot.hasCrashed ? "has-crashed-worker" : ""} ${shot.hasStalled ? "has-stalled-worker" : ""} ${panelMode ? "inside-detail-panel" : ""}">
+                    <div class="shot-overview">
+                        <div class="shot-meta">
+                            <div class="shot-label">${escapeHtml(detailLabel)}</div>
+                            <div class="shot-title-row">
+                                <div class="shot-title ${shot.isCache ? "cache-mode" : ""}">${escapeHtml(shot.name)}</div>
+                                ${showDelete ? `
+                                    <button class="btn-delete-shot" type="button" onclick="deleteShotById('${shotId}')" title="Remove Shot from List">
+                                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="3 6 5 6 21 6"></polyline>
+                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                            <line x1="10" y1="11" x2="10" y2="17"></line>
+                                            <line x1="14" y1="11" x2="14" y2="17"></line>
+                                        </svg>
+                                    </button>
+                                ` : ""}
+                            </div>
+                        </div>
+
+                        <div class="playbar-meta">
+                            <div class="field-label">Global Playbar</div>
+                            <div class="global-range">${escapeHtml(shot.gStart)}-${escapeHtml(shot.gEnd)}</div>
+                        </div>
+                    </div>
+
+                    <div class="timeline-panel">
+                        <div class="timeline-head">
+                            <div class="timeline-edge">${escapeHtml(shot.gStart)}</div>
+                            <div class="timeline-title">Global Timeline Progress</div>
+                            <div class="timeline-edge">${escapeHtml(shot.gEnd)}</div>
+                        </div>
+                        <div class="timeline-track">
+                            ${renderShotTimeline(shot)}
+                        </div>
+                    </div>
+
+                    <div class="worker-stack">${renderShotWorkers(shot)}</div>
+                </section>
             `;
-                list.appendChild(shotEl);
+        }
+
+        function renderShotCardTimeline(shot) {
+            return shot.workers.map((worker) => {
+                const stateClass = getStateClass(worker);
+                const fillWidth = worker.isFinished ? 100 : clamp(worker.progress, 0, 100);
+
+                return `
+                    <span class="shot-card__micro-segment ${stateClass}" style="--worker-color:${worker.color}; --worker-fill:${fillWidth}%;">
+                        <span class="shot-card__micro-fill"></span>
+                    </span>
+                `;
+            }).join("");
+        }
+
+        function renderShotCard(shot, options = {}) {
+            const { compact = false } = options;
+            const isSelected = shot.name === selectedShotName;
+            const showMetrics = !document.body.classList.contains("bp-mobile");
+            const metrics = [
+                ["Workers", `${shot.workerCount}`],
+                ["Frames", shot.frameLabel],
+                ["Status", shot.statusLabel],
+                ["Est. Finish", shot.estimatedFinishLabel]
+            ];
+
+            return `
+                <article class="shot-card ${compact ? "is-compact" : "is-featured"} ${isSelected ? "is-selected" : ""} status-${shot.statusKey}" data-shot-name="${escapeAttr(shot.name)}" data-shot-signature="${escapeAttr(getShotCardSignature(shot, compact))}" style="--shot-accent:${shot.accent}; --shot-accent-glow:${shot.accentGlow}; --shot-soft-accent:${shot.softAccent};">
+                    <button
+                        class="shot-card__surface"
+                        type="button"
+                        data-shot-card
+                        data-shot-name="${escapeAttr(shot.name)}"
+                        aria-pressed="${isSelected ? "true" : "false"}"
+                        aria-label="${escapeAttr(`Open details for ${shot.name}`)}"
+                        onclick="openShotDetailPanelByCard(this)">
+                        
+                        <div class="shot-card__glare"></div>
+                        <div class="shot-card__glow-bg"></div>
+
+                            
+                            <div class="shot-card__progress-ring">
+                                <svg viewBox="0 0 36 36" class="circular-chart">
+                                    <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                    <path class="circle" stroke-dasharray="${shot.progress}, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                </svg>
+                                <span class="percentage">${shot.progress}%</span>
+                            </div>
+                        </div>
+
+                        <div class="shot-card__main">
+                            <div class="shot-card__title" data-marquee-title data-overflowing="false" title="${escapeAttr(shot.name)}" aria-label="${escapeAttr(shot.name)}">
+                                <span class="shot-card__title-track" data-title-marquee>
+                                    <span class="shot-card__title-text" data-title-primary>${escapeHtml(shot.name)}</span>
+                                    <span class="shot-card__title-gap" aria-hidden="true"></span>
+                                    <span class="shot-card__title-text shot-card__title-text--clone" aria-hidden="true">${escapeHtml(shot.name)}</span>
+                                </span>
+                            </div>
+                            <div class="shot-card__subtitle">${escapeHtml(getShotSubtitle(shot))}</div>
+                        </div>
+
+                        ${showMetrics ? `
+                            <div class="shot-card__metrics">
+                                ${metrics.map(([label, value]) => `
+                                    <div class="shot-card__metric">
+                                        <span class="metric-label">${escapeHtml(label)}</span>
+                                        <strong class="metric-value">${escapeHtml(value)}</strong>
+                                    </div>
+                                `).join("")}
+                            </div>
+                        ` : ""}
+
+                        <div class="shot-card__timeline">
+                            <div class="shot-card__timeline-label">
+                                <span>Sweep Progress</span>
+                                <strong>${shot.gStart}-${shot.gEnd}</strong>
+                            </div>
+                            <div class="shot-card__timeline-track">
+                                ${renderShotCardTimeline(shot)}
+                            </div>
+                        </div>
+
+                        <div class="shot-card__footer">
+                            <div class="shot-card__signal">
+                                <span class="pulse-dot"></span>
+                                ${escapeHtml(shot.alertSummary)}
+                            </div>
+                            <div class="shot-card__cta">
+                                Inspect
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    <polyline points="12 5 19 12 12 19"></polyline>
+                                </svg>
+                            </div>
+                        </div>
+                    </button>
+
+                    <button class="shot-card__delete" type="button" onclick="event.stopPropagation(); deleteShotById('${shot.id}')" title="Remove Shot from List">
+                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 6h18"></path>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                    </button>
+                </article>
+            `;
+        }
+
+        function getShotCardSignature(shot, compact = false) {
+            return JSON.stringify({
+                compact,
+                selected: shot.name === selectedShotName,
+                statusKey: shot.statusKey,
+                progress: shot.progress,
+                modeLabel: shot.modeLabel,
+                workerCount: shot.workerCount,
+                frameLabel: shot.frameLabel,
+                latestActivityLabel: shot.latestActivityLabel,
+                alertSummary: shot.alertSummary,
+                etaSummary: shot.etaSummary,
+                crashDetectionStatus: shot.crashDetectionStatus,
+                crashDetectionEnabled: shot.crashDetectionEnabled,
+                crashDetectionBadgeClass: shot.crashDetectionBadgeClass,
+                crashDetectionBadgeText: shot.crashDetectionBadgeText,
+                accent: shot.accent,
+                accentGlow: shot.accentGlow,
+                softAccent: shot.softAccent,
+                subtitle: getShotSubtitle(shot),
+                workers: shot.workers.map((worker) => ({
+                    renderKey: worker.renderKey,
+                    progress: worker.progress,
+                    isFinished: worker.isFinished,
+                    isCrashed: worker.isCrashed,
+                    isStalled: worker.isStalled,
+                    color: worker.color
+                }))
             });
         }
+
+        function createElementFromHTML(html) {
+            const template = document.createElement("template");
+            template.innerHTML = html.trim();
+            return template.content.firstElementChild;
+        }
+
+        function pickFeaturedShots(shots) {
+            if (shots.length <= 8) return shots;
+
+            const featured = [];
+            const groups = [
+                shots.filter((shot) => shot.statusKey === "crashed"),
+                shots.filter((shot) => shot.statusKey === "stalled"),
+                shots.filter((shot) => shot.statusKey === "rendering"),
+                shots.filter((shot) => shot.statusKey === "finished")
+            ];
+
+            groups.forEach((group) => {
+                group.forEach((shot) => {
+                    if (featured.length >= 6) return;
+                    if (!featured.some((item) => item.name === shot.name)) {
+                        featured.push(shot);
+                    }
+                });
+            });
+
+            return featured.length ? featured : shots.slice(0, 6);
+        }
+
+        function renderOverviewToolbar(shots, filteredShots) {
+            const counts = getOverviewCounts(shots);
+            const filterSummary = FILTERS.find((filter) => filter.id === currentOverviewFilter)?.label || "All";
+            const gridMode = filteredShots.length > 8;
+            const isMobileOverview = document.body.classList.contains("bp-mobile");
+            const viewModeLabel = isMobileOverview
+                ? (gridMode ? "Vertical stack + compact list" : "Vertical stack")
+                : (gridMode ? "Priority rail + compact grid" : "Sliding rail");
+
+            return `
+                <section class="overview-hero">
+                    <div class="overview-hero__copy">
+                        <div class="overview-kicker">Shot Overview</div>
+                        <h2>Browse active shots in card view. Click any shot to inspect details.</h2>
+                        <p>${counts.active} active ${pluralize(counts.active, "shot")} | ${counts.crashed} crashed | ${counts.stalled} stalled | Filter: ${filterSummary}</p>
+                    </div>
+
+                    <div class="overview-stat-strip">
+                        <div class="overview-stat-card tone-live">
+                            <span>Active</span>
+                            <strong>${counts.active}</strong>
+                            <em>Shots currently rendering normally.</em>
+                        </div>
+                        <div class="overview-stat-card tone-danger">
+                            <span>Crashed</span>
+                            <strong>${counts.crashed}</strong>
+                            <em>Shots that have stopped and need checking.</em>
+                        </div>
+                        <div class="overview-stat-card tone-warning">
+                            <span>Stalled</span>
+                            <strong>${counts.stalled}</strong>
+                            <em>Shots still running but not progressing.</em>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="overview-panel__toolbar">
+                    <div class="overview-toolbar__group">
+                        <div class="overview-toolbar__label">Filters</div>
+                        <div class="overview-filter-row">
+                            ${FILTERS.map((filter) => `
+                                <button class="overview-filter ${filter.id === currentOverviewFilter ? "is-active" : ""}" type="button" onclick="setOverviewFilter('${filter.id}')" aria-pressed="${filter.id === currentOverviewFilter ? "true" : "false"}">
+                                    <span>${filter.label}</span>
+                                    <strong>${counts[filter.id] ?? 0}</strong>
+                                </button>
+                            `).join("")}
+                        </div>
+                    </div>
+
+                    <div class="overview-toolbar__meta">
+                        <div class="overview-toolbar__meta-label">View Mode</div>
+                        <div class="view-mode-switch source-switch" role="group" aria-label="Dashboard view mode">
+                            <button class="source-switch__button ${currentViewMode === 'rail' ? 'is-active' : ''}" type="button" onclick="setViewMode('rail')">Card Rail</button>
+                            <button class="source-switch__button ${currentViewMode === 'list' ? 'is-active' : ''}" type="button" onclick="setViewMode('list')">List View</button>
+                            <button class="source-switch__button ${currentViewMode === 'machines' ? 'is-active' : ''}" type="button" onclick="setViewMode('machines')">Machines</button>
+                        </div>
+                    </div>
+                </section>
+            `;
+        }
+
+        function renderOverviewPrimaryHeader(useGridFallback, isMobileOverview, railCount) {
+            return `
+                <div>
+                    <div class="overview-panel__eyebrow">${useGridFallback ? (isMobileOverview ? "Priority Stack" : "Priority Strip") : (isMobileOverview ? "Shot Stack" : "Shot Strip")}</div>
+                    <h3>${useGridFallback ? (isMobileOverview ? "High-signal shots stack vertically for faster phone scanning." : "High-signal shots stay in the front rail.") : (isMobileOverview ? "Scroll down the current live shot landscape." : "Swipe across the current live shot landscape.")}</h3>
+                </div>
+
+                ${!isMobileOverview && railCount > 1 ? `
+                    <div class="rail-controls">
+                        <button class="rail-control" type="button" data-target="shotRailPrimary" data-direction="-1" onclick="scrollShotRail(this)" aria-label="Scroll shots left">
+                            <span>&larr;</span>
+                        </button>
+                        <button class="rail-control" type="button" data-target="shotRailPrimary" data-direction="1" onclick="scrollShotRail(this)" aria-label="Scroll shots right">
+                            <span>&rarr;</span>
+                        </button>
+                    </div>
+                ` : ""}
+            `;
+        }
+
+        function renderOverviewGridHeader(gridCount) {
+            return `
+                <div>
+                    <div class="overview-panel__eyebrow">Compact Grid</div>
+                    <h3>${gridCount} more ${pluralize(gridCount, "shot")} remain visible without turning the overview into one long list.</h3>
+                </div>
+            `;
+        }
+
+        function renderOverviewScaffold(hasFilteredShots, useGridFallback) {
+            if (!hasFilteredShots) {
+                return `
+                    <section class="overview-panel">
+                        <div id="overviewToolbarMount"></div>
+                        <section class="empty-state filtered-empty-state">
+                            <h2>No Shots Match This Filter</h2>
+                            <p>Try another filter to bring the active cards back into the overview.</p>
+                        </section>
+                    </section>
+                `;
+            }
+
+            
+            if (currentViewMode === "list") {
+                return `
+                    <section class="overview-stage is-list-mode">
+                        <section class="overview-panel">
+                            <div id="overviewToolbarMount"></div>
+                            <div class="shot-list-header">
+                                <div class="sl-cell sl-name">Job Name</div>
+                                <div class="sl-cell sl-status">Status</div>
+                                <div class="sl-cell sl-workers">Workers</div>
+                                <div class="sl-cell sl-frames">Frames</div>
+                                <div class="sl-cell sl-progress">Progress</div>
+                                <div class="sl-cell sl-eta">Est. Finish</div>
+                                <div class="sl-cell sl-alert">Alert Summary</div>
+                                <div class="sl-cell sl-action"></div>
+                            </div>
+                            <div id="shotListView" class="shot-list-container"></div>
+                        </section>
+                    </section>
+                `;
+            }
+
+            if (currentViewMode === "machines") {
+                return `
+                    <section class="overview-stage is-machines-mode">
+                        <section class="overview-panel">
+                            <div id="overviewToolbarMount"></div>
+                            <div id="machinesTableView" class="machines-table-container"></div>
+                        </section>
+                    </section>
+                `;
+            }
+
+            return `
+                <section class="overview-stage ${useGridFallback ? "is-grid-mode" : "is-rail-mode"}">
+                    <section class="overview-panel">
+                        <div id="overviewToolbarMount"></div>
+                        <div id="overviewPrimaryHead" class="overview-panel__head"></div>
+                        <div id="shotRailPrimary" class="shot-rail"></div>
+                    </section>
+
+                    <section id="overviewGridPanel" class="overview-panel overview-panel--grid" ${useGridFallback ? "" : "hidden"}>
+                        <div id="overviewGridHead" class="overview-panel__head"></div>
+                        <div id="shotGridSecondary" class="shot-card-grid"></div>
+                    </section>
+                </section>
+            `;
+        }
+
+        function syncShotCardCollection(container, shots, options = {}) {
+            if (!container) return;
+
+            const existingCards = new Map(
+                Array.from(container.querySelectorAll(":scope > .shot-card")).map((card) => [card.dataset.shotName || "", card])
+            );
+
+            shots.forEach((shot, index) => {
+                const signature = getShotCardSignature(shot, !!options.compact);
+                const current = existingCards.get(shot.name);
+                let card = current;
+
+                if (!current || current.dataset.shotSignature !== signature) {
+                    card = createElementFromHTML(renderShotCard(shot, options));
+                    if (current) {
+                        current.replaceWith(card);
+                    } else {
+                        container.appendChild(card);
+                    }
+                    hydrateShotCard(card);
+                }
+
+                const expectedNode = container.children[index] || null;
+                if (card !== expectedNode) {
+                    container.insertBefore(card, expectedNode);
+                }
+
+                existingCards.delete(shot.name);
+            });
+
+            existingCards.forEach((card) => card.remove());
+        }
+
+        function hydrateShotCard(card) {
+            const cardButton = card?.querySelector?.("[data-shot-card]");
+            if (!cardButton) return;
+
+            cardButton.addEventListener("pointermove", handleShotCardPointerMove);
+            cardButton.addEventListener("pointerleave", resetShotCardPointer);
+            refreshShotCardTitleMarquees(card);
+        }
+
+        function refreshShotCardTitleMarquees(scope = document) {
+            const root = scope && typeof scope.querySelectorAll === "function" ? scope : document;
+            const titles = root.querySelectorAll("[data-marquee-title]");
+            const marqueeGap = 36;
+
+            titles.forEach((titleEl) => {
+                const primaryText = titleEl.querySelector("[data-title-primary]");
+                if (!primaryText) return;
+
+                titleEl.dataset.overflowing = "false";
+                titleEl.style.removeProperty("--marquee-distance");
+                titleEl.style.removeProperty("--marquee-duration");
+
+                const availableWidth = Math.ceil(titleEl.clientWidth || 0);
+                const textWidth = Math.ceil(primaryText.scrollWidth || 0);
+                const isOverflowing = availableWidth > 0 && textWidth > (availableWidth + 2);
+
+                if (!isOverflowing) return;
+
+                const travelDistance = textWidth + marqueeGap;
+                const durationSeconds = Math.max(6, Math.min(18, travelDistance / 28));
+
+                titleEl.dataset.overflowing = "true";
+                titleEl.style.setProperty("--marquee-distance", `${travelDistance}px`);
+                titleEl.style.setProperty("--marquee-duration", `${durationSeconds}s`);
+            });
+        }
+
+        function renderShotListRow(shot) {
+            const isSelected = shot.name === selectedShotName;
+            return `
+                <article class="shot-list-row ${isSelected ? 'is-selected' : ''} status-${shot.statusKey}" onclick="openShotDetailPanelByCard(this)" data-shot-name="${escapeAttr(shot.name)}" data-shot-card="true" style="--shot-accent:${shot.accent};">
+                    <div class="sl-cell sl-name">
+                        <div class="sl-title">${escapeHtml(shot.name)}</div>
+                        <div class="sl-type">${escapeHtml(shot.modeLabel)}</div>
+                    </div>
+                    <div class="sl-cell sl-status">
+                        <span class="sl-status-text" style="color:${shot.accent}">${escapeHtml(shot.statusLabel)}</span>
+                    </div>
+                    <div class="sl-cell sl-workers">
+                        <span class="sl-label">Workers</span>
+                        <strong>${shot.workerCount}</strong>
+                    </div>
+                    <div class="sl-cell sl-frames">
+                        <span class="sl-label">Frames</span>
+                        <strong>${shot.frameLabel}</strong>
+                    </div>
+                    <div class="sl-cell sl-progress">
+                        <div class="sl-prog-bar"><div class="sl-prog-fill" style="width:${shot.progress}%; background-color:${shot.accent};"></div></div>
+                        <strong>${shot.progress}%</strong>
+                    </div>
+                    <div class="sl-cell sl-eta">
+                        <span class="sl-label">ETA / Finish</span>
+                        <strong>${escapeHtml(shot.estimatedFinishLabel)}</strong>
+                    </div>
+                    <div class="sl-cell sl-alert">
+                        <span class="pulse-dot"></span>
+                        ${escapeHtml(shot.alertSummary)}
+                    </div>
+                    <div class="sl-cell sl-action">
+                        <button class="btn-inspect" type="button">Inspect</button>
+                    </div>
+                </article>
+            `;
+        }
+
+        function renderMachinesTable(groups) {
+            if (!groups.length) {
+                return `
+                    <section class="empty-state filtered-empty-state">
+                        <h2>No Machines Match This Filter</h2>
+                        <p>Try another filter to bring machine rows back into view.</p>
+                    </section>
+                `;
+            }
+
+            const columns = [
+                ["shotName", "Shot Name", "", "col-shot-name"],
+                ["currentFrame", "Current Frame", "is-numeric", "col-frame-current"],
+                ["startFrame", "Start Frame", "is-numeric", "col-frame-start"],
+                ["endFrame", "End Frame", "is-numeric", "col-frame-end"],
+                ["progress", "Progress", "is-numeric", "col-progress"],
+                ["eta", "ETA", "is-numeric", "col-eta"],
+                ["lastUpdate", "Last Update", "", "col-last-update"],
+                ["detectionReason", "Detection Reason", "is-truncate", "col-detection"]
+            ];
+
+            return `
+                <div class="machine-groups">
+                    ${groups.map((group) => `
+                        <section class="machine-group" data-machine-group="${escapeAttr(group.id)}" style="--machine-group-accent:${escapeAttr(group.accent)}; --machine-group-accent-soft:${escapeAttr(group.accentSoft)};">
+                            <div class="machine-group__header">
+                                <div class="machine-group__eyebrow">Worker Group</div>
+                                <div class="machine-group__title-row">
+                                    <h3>${escapeHtml(group.workerName)}</h3>
+                                    <span class="machine-group__meta">${escapeHtml(group.machineName)}</span>
+                                    <span class="machine-group__count">${group.rows.length} ${pluralize(group.rows.length, "shot")}</span>
+                                </div>
+                            </div>
+
+                            <div class="machine-table-wrap">
+                                <table class="machine-table">
+                                    <colgroup>
+                                        ${columns.map(([, , , columnClass]) => `<col class="${columnClass}">`).join("")}
+                                    </colgroup>
+                                    <thead>
+                                        <tr>
+                                            ${columns.map(([, label, className]) => `<th class="${className}">${label}</th>`).join("")}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${group.rows.map((row) => `
+                                            <tr data-machine-row="${escapeAttr(row.id)}">
+                                                ${columns.map(([key, label, className]) => `
+                                                    <td class="${className}" data-label="${escapeAttr(label)}" title="${escapeAttr(row[key])}">
+                                                        <span>${escapeHtml(row[key])}</span>
+                                                    </td>
+                                                `).join("")}
+                                            </tr>
+                                        `).join("")}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                    `).join("")}
+                </div>
+            `;
+        }
+
+        function renderShotOverview(shots) {
+            const filteredShots = shots.filter((shot) => matchesShotFilter(shot, currentOverviewFilter));
+            const isMobileOverview = document.body.classList.contains("bp-mobile");
+            const useGridFallback = filteredShots.length > 8;
+            const layoutSignature = JSON.stringify({
+                hasFilteredShots: filteredShots.length > 0,
+                useGridFallback,
+                isMobileOverview,
+                viewMode: currentViewMode
+            });
+
+            if (overviewLayoutSignature !== layoutSignature) {
+                overviewLayoutSignature = layoutSignature;
+                shotList.innerHTML = renderOverviewScaffold(filteredShots.length > 0, useGridFallback);
+            }
+
+            const toolbarMount = document.getElementById("overviewToolbarMount");
+            if (toolbarMount) {
+                toolbarMount.innerHTML = renderOverviewToolbar(shots, filteredShots);
+            }
+
+            if (!filteredShots.length) {
+                return;
+            }
+
+            if (currentViewMode === "list") {
+                const listContainer = document.getElementById("shotListView");
+                if (listContainer) {
+                    listContainer.innerHTML = filteredShots.map(shot => renderShotListRow(shot)).join("");
+                }
+                return;
+            }
+
+            if (currentViewMode === "machines") {
+                const machineContainer = document.getElementById("machinesTableView");
+                if (machineContainer) {
+                    machineContainer.innerHTML = renderMachinesTable(buildMachineRows(filteredShots));
+                }
+                return;
+            }
+
+            const railShots = useGridFallback ? pickFeaturedShots(filteredShots) : filteredShots;
+            const featuredNames = new Set(railShots.map((shot) => shot.name));
+            const gridShots = useGridFallback
+                ? filteredShots.filter((shot) => !featuredNames.has(shot.name))
+                : [];
+
+            const primaryHead = document.getElementById("overviewPrimaryHead");
+            if (primaryHead) {
+                primaryHead.innerHTML = renderOverviewPrimaryHeader(useGridFallback, isMobileOverview, railShots.length);
+            }
+
+            const gridPanel = document.getElementById("overviewGridPanel");
+            const gridHead = document.getElementById("overviewGridHead");
+            if (gridPanel) {
+                gridPanel.hidden = !gridShots.length;
+            }
+            if (gridHead && gridShots.length) {
+                gridHead.innerHTML = renderOverviewGridHeader(gridShots.length);
+            }
+
+            syncShotCardCollection(document.getElementById("shotRailPrimary"), railShots);
+            syncShotCardCollection(document.getElementById("shotGridSecondary"), gridShots, { compact: true });
+            requestAnimationFrame(() => refreshShotCardTitleMarquees(shotList));
+        }
+
+        function getShotDetailSignature(shot) {
+            return JSON.stringify({
+                id: shot.id,
+                progress: shot.progress,
+                liveWorkers: shot.liveWorkers,
+                latestActivityLabel: shot.latestActivityLabel,
+                alertSummary: shot.alertSummary,
+                statusKey: shot.statusKey,
+                frameLabel: shot.frameLabel,
+                workerCount: shot.workerCount,
+                crashDetectionStatus: shot.crashDetectionStatus,
+                crashDetectionEnabled: shot.crashDetectionEnabled,
+                crashDetectionBadgeClass: shot.crashDetectionBadgeClass,
+                crashDetectionBadgeText: shot.crashDetectionBadgeText,
+                workers: shot.workers.map((worker) => ({
+                    renderKey: worker.renderKey,
+                    progress: worker.progress,
+                    currentFrame: worker.currentFrame,
+                    lastFrameSeen: worker.lastFrameSeen,
+                    isFinished: worker.isFinished,
+                    isCrashed: worker.isCrashed,
+                    isStalled: worker.isStalled,
+                    lastHeartbeatTs: worker.lastHeartbeatTs,
+                    gpuName: worker.gpuName || worker.gpu || "",
+                    gpuUtilPercent: worker.gpuUtilPercent ?? worker.gpu_util_percent ?? null,
+                    vramUsedMb: worker.vramUsedMb ?? worker.vram_used_mb ?? null,
+                    vramTotalMb: worker.vramTotalMb ?? worker.vram_total_mb ?? null,
+                    gpuTemperatureC: worker.gpuTemperatureC ?? worker.temperature_c ?? null,
+                    gpuSampledAt: worker.gpuSampledAt ?? worker.gpu_sampled_at ?? null
+                })),
+                expanded: Array.from(expandedWorkerKeys)
+            });
+        }
+
+        function renderShotDetailPanel(shot) {
+            const signature = getShotDetailSignature(shot);
+            const currentFrame = shotDetailPanelBody.querySelector(".shot-detail-frame");
+            const currentScrollRegion = shotDetailPanelBody.querySelector(".shot-detail-frame__scroll");
+            const previousScrollTop = currentScrollRegion ? currentScrollRegion.scrollTop : 0;
+
+            if (currentFrame && currentFrame.dataset.detailSignature === signature) {
+                return;
+            }
+
+            shotDetailPanelBody.innerHTML = `
+                <div class="shot-detail-frame" data-detail-signature="${escapeAttr(signature)}" style="--shot-accent:${shot.accent}; --shot-accent-glow:${shot.accentGlow};">
+                    <div class="shot-detail-frame__header">
+                        <button class="shot-detail-frame__close" type="button" onclick="closeShotDetailPanel()">
+                            <span>&larr;</span>
+                            <span>Back</span>
+                        </button>
+
+                        <div class="shot-detail-frame__copy">
+                            <div class="shot-detail-frame__eyebrow">Shot Inspection</div>
+                            <h2>${escapeHtml(shot.name)}</h2>
+                        </div>
+
+                        <button class="shot-detail-frame__delete" type="button" onclick="deleteShotById('${shot.id}')" title="Delete shot">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                <line x1="10" y1="11" x2="10" y2="17"></line>
+                                <line x1="14" y1="11" x2="14" y2="17"></line>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="shot-detail-frame__summary">
+                        <div class="shot-detail-frame__summary-card">
+                            <span>Progress</span>
+                            <strong>${shot.progress}%</strong>
+                        </div>
+                        <div class="shot-detail-frame__summary-card">
+                            <span>Live Workers</span>
+                            <strong>${shot.liveWorkers}</strong>
+                        </div>
+                        <div class="shot-detail-frame__summary-card">
+                            <span>Estimated Finish</span>
+                            <strong>${escapeHtml(shot.estimatedFinishLabel)}</strong>
+                        </div>
+                        <div class="shot-detail-frame__summary-card">
+                            <span>Signal</span>
+                            <strong>${escapeHtml(shot.alertSummary)}</strong>
+                        </div>
+                    </div>
+
+                    <div class="shot-detail-frame__scroll">
+                        ${renderShotDetailContent(shot, shot.id, { panelMode: true, showDelete: false })}
+                    </div>
+                </div>
+            `;
+
+            const nextScrollRegion = shotDetailPanelBody.querySelector(".shot-detail-frame__scroll");
+            if (nextScrollRegion) {
+                nextScrollRegion.scrollTop = previousScrollTop;
+            }
+        }
+
+        function showShotDetailPanel(focusPanel = false) {
+            if (detailBackdropTimer) {
+                clearTimeout(detailBackdropTimer);
+                detailBackdropTimer = null;
+            }
+
+            document.body.classList.add("detail-panel-open");
+            shotDetailBackdrop.hidden = false;
+            shotDetailPanel.setAttribute("aria-hidden", "false");
+
+            requestAnimationFrame(() => {
+                shotDetailBackdrop.classList.add("is-visible");
+                shotDetailPanel.classList.add("is-open");
+            });
+
+            if (focusPanel) {
+                requestAnimationFrame(() => shotDetailPanel.focus({ preventScroll: true }));
+            }
+        }
+
+        function closeShotDetailPanel(options = {}) {
+            const { preserveSelection = false } = options;
+
+            if (!preserveSelection) {
+                selectedShotName = null;
+                expandedWorkerKeys = new Set();
+            }
+
+            document.body.classList.remove("detail-panel-open");
+            shotDetailBackdrop.classList.remove("is-visible");
+            shotDetailPanel.classList.remove("is-open");
+            shotDetailPanel.setAttribute("aria-hidden", "true");
+
+            if (detailBackdropTimer) clearTimeout(detailBackdropTimer);
+            detailBackdropTimer = setTimeout(() => {
+                if (!shotDetailPanel.classList.contains("is-open")) {
+                    shotDetailBackdrop.hidden = true;
+                    if (!preserveSelection) {
+                        shotDetailPanelBody.innerHTML = "";
+                    }
+                }
+            }, 320);
+
+            updateSelectedShotCards();
+        }
+
+        function updateSelectedShotCards() {
+            if (!shotList) return;
+
+            shotList.querySelectorAll(".shot-card").forEach((card) => {
+                const surface = card.querySelector("[data-shot-card]");
+                const shotName = surface?.dataset?.shotName || "";
+                const isSelected = !!selectedShotName && shotName === selectedShotName;
+                card.classList.toggle("is-selected", isSelected);
+                if (surface) {
+                    surface.setAttribute("aria-pressed", isSelected ? "true" : "false");
+                }
+            });
+        }
+
+        function renderSelectedShotDetail(focusPanel = false) {
+            if (!selectedShotName) {
+                closeShotDetailPanel({ preserveSelection: false });
+                return;
+            }
+
+            const shot = currentShotsByName.get(selectedShotName);
+            if (!shot) {
+                closeShotDetailPanel({ preserveSelection: false });
+                return;
+            }
+
+            renderShotDetailPanel(shot);
+            showShotDetailPanel(focusPanel);
+        }
+
+        function handleShotCardPointerMove(event) {
+            if (shouldReduceMotion()) return;
+
+            const surface = event.currentTarget;
+            const card = surface.closest(".shot-card");
+            if (!card) return;
+
+            const rect = surface.getBoundingClientRect();
+            const x = (event.clientX - rect.left) / rect.width;
+            const y = (event.clientY - rect.top) / rect.height;
+            const rotateY = (x - 0.5) * 12;
+            const rotateX = (0.5 - y) * 12;
+
+            card.style.setProperty("--card-rotate-x", `${rotateX.toFixed(2)}deg`);
+            card.style.setProperty("--card-rotate-y", `${rotateY.toFixed(2)}deg`);
+            card.style.setProperty("--pointer-x", `${(x * 100).toFixed(2)}%`);
+            card.style.setProperty("--pointer-y", `${(y * 100).toFixed(2)}%`);
+        }
+
+        function resetShotCardPointer(event) {
+            const surface = event.currentTarget;
+            const card = surface.closest(".shot-card");
+            if (!card) return;
+
+            card.style.removeProperty("--card-rotate-x");
+            card.style.removeProperty("--card-rotate-y");
+            card.style.removeProperty("--pointer-x");
+            card.style.removeProperty("--pointer-y");
+        }
+
+        function renderUI(data) {
+            if (!data || Object.keys(data).length === 0) {
+                currentShots = [];
+                currentShotsByName = new Map();
+                overviewLayoutSignature = "";
+                closeShotDetailPanel({ preserveSelection: false });
+                shotList.innerHTML = `
+                    <section class="empty-state">
+                        <h2>No Active Renders</h2>
+                        <p>The dashboard is live and waiting for incoming tracker data.</p>
+                    </section>
+                `;
+                return;
+            }
+
+            currentShots = buildShotCollection(data);
+            currentShotsByName = new Map(currentShots.map((shot) => [shot.name, shot]));
+            renderShotOverview(currentShots);
+            updateSelectedShotCards();
+            requestAnimationFrame(() => refreshShotCardTitleMarquees(shotList));
+
+            if (selectedShotName) {
+                renderSelectedShotDetail(false);
+            } else if (shotDetailPanel.classList.contains("is-open")) {
+                closeShotDetailPanel({ preserveSelection: false });
+            }
+        }
+
+        shotDetailBackdrop?.addEventListener("click", () => closeShotDetailPanel());
+        shotDetailPanel?.addEventListener("click", (event) => event.stopPropagation());
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape" && shotDetailPanel.classList.contains("is-open")) {
+                closeShotDetailPanel();
+            }
+        });
     </script>
 </body>
+
+<script>
+    // ==========================================
+    // # Copyright (c) 2026 Truong Do Trung Hieu | JamesDo . All rights reserved.
+    // # Product: DoneYet / JDTool for Houdini
+    // # Build: 2026.04.07
+    // # Unauthorized copying, resale, redistribution, or modification is prohibited.
+    // ==========================================
+</script>
+
+
 
 </html>
