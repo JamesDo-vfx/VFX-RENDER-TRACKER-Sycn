@@ -17,7 +17,9 @@
     <title>DoneYet Monitor</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Space+Grotesk:wght@400;500;700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -33,7 +35,8 @@
 
             <div class="topbar-actions">
                 <button class="btn-tool" type="button" onclick="toggleSplitter()">
-                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
                         <line x1="4" y1="6" x2="20" y2="6"></line>
                         <line x1="4" y1="12" x2="20" y2="12"></line>
                         <line x1="4" y1="18" x2="20" y2="18"></line>
@@ -46,8 +49,10 @@
         <div class="utility-bar">
             <div class="utility-bar__source-group">
                 <div class="source-switch" role="group" aria-label="Dashboard data source">
-                    <button id="sourceLocalBtn" class="source-switch__button is-active" type="button" onclick="selectViewSource('local_db')">Local DB</button>
-                    <button id="sourceFirebaseBtn" class="source-switch__button" type="button" onclick="selectViewSource('firebase_mirror')">Cloud DB</button>
+                    <button id="sourceLocalBtn" class="source-switch__button is-active" type="button"
+                        onclick="selectViewSource('local_db')">Local DB</button>
+                    <button id="sourceFirebaseBtn" class="source-switch__button" type="button"
+                        onclick="selectViewSource('firebase_mirror')">Cloud DB</button>
                 </div>
             </div>
 
@@ -96,7 +101,8 @@
         <div id="shotDetailBackdrop" class="shot-detail-backdrop" hidden></div>
 
         <aside id="shotDetailPanel" class="shot-detail-panel" aria-hidden="true" tabindex="-1">
-            <button class="shot-detail-panel__resize-handle shot-detail-panel__resize-handle--left" type="button" data-resize-handle="left" aria-label="Resize detail panel width"></button>
+            <button class="shot-detail-panel__resize-handle shot-detail-panel__resize-handle--left" type="button"
+                data-resize-handle="left" aria-label="Resize detail panel width"></button>
             <div id="shotDetailPanelBody" class="shot-detail-panel__body"></div>
         </aside>
 
@@ -113,7 +119,8 @@
 
                 <p class="site-footer__credit">
                     Developed and maintained by
-                    <a href="https://jamesdo-vfx.github.io/JamesDo-Portfolio/" target="_blank" rel="noreferrer" class="site-footer__link"><span id="appFooterOwner">JamesDo</span></a>.
+                    <a href="https://jamesdo-vfx.github.io/JamesDo-Portfolio/" target="_blank" rel="noreferrer"
+                        class="site-footer__link"><span id="appFooterOwner">JamesDo</span></a>.
                     Powered by Antigravity.
                 </p>
 
@@ -121,7 +128,7 @@
             </div>
         </footer>
     </div>
-    
+
     <div id="copyToast">Copied to clipboard</div>
 
     <script type="module">
@@ -154,7 +161,7 @@
         }
         const VIEW_SOURCE_STORAGE_KEY = "jdtool-dashboard-view-source";
         const sourceAvailability = {
-            local_db: { available: false, message: "Local DB unavailable." },
+            local_db: { available: false, message: "Local server is offline." },
             firebase_mirror: { available: false, message: "Cloud DB unavailable." }
         };
 
@@ -321,7 +328,7 @@
             shotList.innerHTML = `
                 <section class="empty-state">
                     <h2>${escapeHtml(title)}</h2>
-                    <p>${escapeHtml(message)}</p>
+                    <div class="empty-state__message">${message}</div>
                 </section>
             `;
         }
@@ -395,7 +402,7 @@
             if (availability.available) {
                 setViewSourceBadge("sync-local", "VIEW: LOCAL DB");
             } else {
-                setViewSourceBadge("sync-degraded", "VIEW: LOCAL DB UNAVAILABLE");
+                setViewSourceBadge("sync-degraded", "VIEW: LOCAL SERVER OFFLINE");
             }
         }
 
@@ -406,7 +413,7 @@
                 return false;
             }
             if (!sourceAvailability.local_db.available) {
-                showToast("Local DB is unavailable, so SQLite cannot be synced from this dashboard.");
+                showToast("Local server is offline, so SQLite cannot be synced from this dashboard.");
                 return false;
             }
             return window.confirm(
@@ -702,6 +709,11 @@
         async function init() {
             applyDensityCompensation();
 
+            // Restore state from history if present (e.g. after refresh)
+            if (history.state?.panel === "shotDetail") {
+                selectedShotName = history.state.shotName;
+            }
+
             let mode = "private";
             const runtime = await refreshRuntimeMetadata();
             if (runtime && runtime.tracker_mode) {
@@ -764,10 +776,10 @@
                 scheduleSourcePolling(2500);
             } catch (err) {
                 console.error("Local DB read error:", err);
-                markSourceAvailability("local_db", false, `Local DB unavailable: ${err.message || err}`);
+                markSourceAvailability("local_db", false, `Local server offline: ${err.message || err}`);
                 applyViewSourceStatus();
                 if (selectedViewSource === "local_db") {
-                renderUnavailableState("Local DB Unavailable", "The local SQLite-backed API could not be reached. The dashboard will not fall back to Cloud DB automatically.");
+                    renderUnavailableState("Self-Host Server Offline", "Please ensure 'Self-Host Server' mode is enabled and click 'Start Server' within the plugin to view local data.");
                 }
                 scheduleSourcePolling(12000);
             }
@@ -778,7 +790,7 @@
             if (!firebaseUrl) {
                 markSourceAvailability("firebase_mirror", false, "Cloud DB is not configured.");
                 applyViewSourceStatus();
-                renderUnavailableState("Cloud DB Unavailable", "Cloud DB is not configured for this tracker. SQLite remains the source of truth and the dashboard will not fall back to Local DB automatically.");
+                renderUnavailableState("Cloud DB Connection Required", "Cloud DB is not configured. To sync your renders to the cloud, please setup a Firebase project and a GitHub repository.<br><br><a href='https://jamesdo-vfx.github.io/JamesDo-Portfolio/' target='_blank' class='empty-state__link-btn'>View Setup Guide</a>");
                 scheduleSourcePolling(15000);
                 return;
             }
@@ -809,7 +821,7 @@
                 console.error("Cloud DB read error:", err);
                 markSourceAvailability("firebase_mirror", false, `Cloud DB unavailable: ${err.message || err}`);
                 applyViewSourceStatus();
-                renderUnavailableState("Cloud DB Unavailable", "The dashboard could not read Cloud DB. The dashboard will not fall back to Local DB automatically.");
+                renderUnavailableState("Cloud DB Sync Error", "The dashboard could not connect to Cloud DB. Please verify your Firebase credentials and internet connection.<br><br><a href='https://jamesdo-vfx.github.io/JamesDo-Portfolio/' target='_blank' class='empty-state__link-btn'>Troubleshooting Guide</a>");
                 scheduleSourcePolling(15000);
             }
         }
@@ -949,6 +961,13 @@
             applyDensityCompensation();
             requestAnimationFrame(() => refreshShotCardTitleMarquees(shotList));
         });
+        window.addEventListener("popstate", (event) => {
+            if (event.state?.panel === "shotDetail") {
+                window.openShotDetailPanel(event.state.shotName, { fromPopState: true });
+            } else {
+                closeShotDetailPanel({ preserveSelection: false, fromPopState: true });
+            }
+        });
         window.addEventListener("beforeunload", () => {
             stopSourcePolling();
             if (serviceStatusPollTimer) {
@@ -1042,8 +1061,16 @@
             track.scrollBy({ left: delta, behavior: "smooth" });
         };
 
-        window.openShotDetailPanel = (shotName) => {
+        window.openShotDetailPanel = (shotName, options = {}) => {
             if (!shotName || !currentShotsByName.has(shotName)) return;
+
+            const { fromPopState = false } = options;
+            if (!fromPopState) {
+                const state = { panel: "shotDetail", shotName };
+                if (history.state?.panel !== "shotDetail" || history.state?.shotName !== shotName) {
+                    history.pushState(state, "");
+                }
+            }
 
             if (selectedShotName !== shotName) {
                 expandedWorkerKeys = new Set();
@@ -1060,8 +1087,8 @@
             if (shotName) window.openShotDetailPanel(shotName);
         };
 
-        window.closeShotDetailPanel = () => {
-            closeShotDetailPanel();
+        window.closeShotDetailPanel = (options = {}) => {
+            closeShotDetailPanel(options);
         };
 
         function isCompactDetailLayout() {
@@ -1947,6 +1974,9 @@
 
             shotArray.sort((a, b) => {
                 if (a.priority !== b.priority) return a.priority - b.priority;
+                const aTime = a.crashDetectionLastHeartbeatAt || 0;
+                const bTime = b.crashDetectionLastHeartbeatAt || 0;
+                if (bTime !== aTime) return bTime - aTime;
                 if (b.liveWorkers !== a.liveWorkers) return b.liveWorkers - a.liveWorkers;
                 if (b.workerCount !== a.workerCount) return b.workerCount - a.workerCount;
                 return String(a.name).localeCompare(String(b.name));
@@ -2185,6 +2215,21 @@
         }
 
         function renderShotCard(shot, options = {}) {
+            if (shot.isMoreCard) {
+                return `
+                    <article class="shot-card is-more-card" data-shot-name="${escapeAttr(shot.name)}" data-shot-signature="${escapeAttr(getShotCardSignature(shot, !!options.compact))}" style="--shot-accent:var(--accent); --shot-accent-glow:rgba(81, 255, 132, 0.23);">
+                        <button
+                            class="shot-card__surface"
+                            type="button"
+                            onclick="setViewMode('list')">
+                            <div class="more-content">
+                                <div class="more-content__count">${shot.count}</div>
+                                <div class="more-content__text">more ${pluralize(shot.count, "shot")} remain visible without turning the overview into one long list.</div>
+                            </div>
+                        </button>
+                    </article>
+                `;
+            }
             const { compact = false } = options;
             const isSelected = shot.name === selectedShotName;
             const showMetrics = !document.body.classList.contains("bp-mobile");
@@ -2277,6 +2322,9 @@
         }
 
         function getShotCardSignature(shot, compact = false) {
+            if (shot.isMoreCard) {
+                return JSON.stringify({ isMoreCard: true, count: shot.count, compact });
+            }
             return JSON.stringify({
                 compact,
                 selected: shot.name === selectedShotName,
@@ -2439,7 +2487,7 @@
                 `;
             }
 
-            
+
             if (currentViewMode === "list") {
                 return `
                     <section class="overview-stage is-list-mode">
@@ -2478,11 +2526,6 @@
                         <div id="overviewToolbarMount"></div>
                         <div id="overviewPrimaryHead" class="overview-panel__head"></div>
                         <div id="shotRailPrimary" class="shot-rail"></div>
-                    </section>
-
-                    <section id="overviewGridPanel" class="overview-panel overview-panel--grid" ${useGridFallback ? "" : "hidden"}>
-                        <div id="overviewGridHead" class="overview-panel__head"></div>
-                        <div id="shotGridSecondary" class="shot-card-grid"></div>
                     </section>
                 </section>
             `;
@@ -2563,7 +2606,13 @@
             return `
                 <article class="shot-list-row ${isSelected ? 'is-selected' : ''} status-${shot.statusKey}" onclick="openShotDetailPanelByCard(this)" data-shot-name="${escapeAttr(shot.name)}" data-shot-card="true" style="--shot-accent:${shot.accent};">
                     <div class="sl-cell sl-name">
-                        <div class="sl-title">${escapeHtml(shot.name)}</div>
+                        <div class="sl-title" data-marquee-title data-overflowing="false" title="${escapeAttr(shot.name)}" aria-label="${escapeAttr(shot.name)}">
+                            <span class="shot-card__title-track">
+                                <span class="shot-card__title-text" data-title-primary>${escapeHtml(shot.name)}</span>
+                                <span class="shot-card__title-gap" aria-hidden="true"></span>
+                                <span class="shot-card__title-text shot-card__title-text--clone" aria-hidden="true">${escapeHtml(shot.name)}</span>
+                            </span>
+                        </div>
                         <div class="sl-type">${escapeHtml(shot.modeLabel)}</div>
                     </div>
                     <div class="sl-cell sl-status">
@@ -2688,6 +2737,7 @@
                 const listContainer = document.getElementById("shotListView");
                 if (listContainer) {
                     listContainer.innerHTML = filteredShots.map(shot => renderShotListRow(shot)).join("");
+                    refreshShotCardTitleMarquees(listContainer);
                 }
                 return;
             }
@@ -2700,28 +2750,27 @@
                 return;
             }
 
-            const railShots = useGridFallback ? pickFeaturedShots(filteredShots) : filteredShots;
+            const railShotsRaw = useGridFallback ? pickFeaturedShots(filteredShots) : filteredShots;
+            const railShots = [...railShotsRaw];
             const featuredNames = new Set(railShots.map((shot) => shot.name));
             const gridShots = useGridFallback
                 ? filteredShots.filter((shot) => !featuredNames.has(shot.name))
                 : [];
+
+            if (gridShots.length > 0) {
+                railShots.push({
+                    isMoreCard: true,
+                    count: gridShots.length,
+                    name: `__more_shots_placeholder_${gridShots.length}__`
+                });
+            }
 
             const primaryHead = document.getElementById("overviewPrimaryHead");
             if (primaryHead) {
                 primaryHead.innerHTML = renderOverviewPrimaryHeader(useGridFallback, isMobileOverview, railShots.length);
             }
 
-            const gridPanel = document.getElementById("overviewGridPanel");
-            const gridHead = document.getElementById("overviewGridHead");
-            if (gridPanel) {
-                gridPanel.hidden = !gridShots.length;
-            }
-            if (gridHead && gridShots.length) {
-                gridHead.innerHTML = renderOverviewGridHeader(gridShots.length);
-            }
-
             syncShotCardCollection(document.getElementById("shotRailPrimary"), railShots);
-            syncShotCardCollection(document.getElementById("shotGridSecondary"), gridShots, { compact: true });
             requestAnimationFrame(() => refreshShotCardTitleMarquees(shotList));
         }
 
@@ -2844,7 +2893,12 @@
         }
 
         function closeShotDetailPanel(options = {}) {
-            const { preserveSelection = false } = options;
+            const { preserveSelection = false, fromPopState = false } = options;
+
+            if (!fromPopState && history.state?.panel === "shotDetail") {
+                history.back();
+                return;
+            }
 
             if (!preserveSelection) {
                 selectedShotName = null;
